@@ -16,7 +16,7 @@ async def handle_user_message(websocket, manager, message: str):
             type="text"
         )
 
-        await manager.send_message(bot_response.json(), websocket)
+        await manager.send_message(bot_response.model_dump_json(), websocket)
 
     except Exception as e:
         error_msg = ChatMessage(
