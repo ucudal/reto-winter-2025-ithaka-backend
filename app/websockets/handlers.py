@@ -1,9 +1,12 @@
 import json
 
+from fastapi import WebSocket
+
+from .manager import WebSocketManager
 from .schemas import ChatMessage
 
 
-async def handle_user_message(websocket, manager, message: str):
+async def handle_user_message(websocket: WebSocket, manager: WebSocketManager, message: str):
     try:
         data = json.loads(message)
         user_msg = ChatMessage(**data)
