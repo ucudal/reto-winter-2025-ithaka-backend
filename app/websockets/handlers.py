@@ -28,6 +28,3 @@ async def handle_user_message(websocket: WebSocket, manager: WebSocketManager, m
             type="error"
         )
         await manager.send_message(error_msg.model_dump_json(), websocket)
-
-    finally:
-        manager.disconnect(websocket)
