@@ -5,11 +5,11 @@ from app.websockets.handlers import handle_user_message
 from app.websockets.manager import WebSocketManager
 
 router = APIRouter()
-manager = WebSocketManager()
 
 
 @router.websocket("/ws/chat")
 async def chat_websocket(websocket: WebSocket):
+    manager = WebSocketManager()
     await manager.connect(websocket)
     try:
         while True:
