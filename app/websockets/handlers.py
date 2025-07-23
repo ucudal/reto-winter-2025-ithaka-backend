@@ -34,7 +34,6 @@ async def handle_user_message(websocket: WebSocket, message: str, manager):
                 AGUIEvent.TEXT_MESSAGE_CHUNK,
                 {
                     "id": message_id,
-                    "role": "assistant",
                     "content": chunk,
                     "chunk_index": chunk_index
                 }
@@ -44,7 +43,6 @@ async def handle_user_message(websocket: WebSocket, message: str, manager):
     except Exception as e:
         error_msg = UserMessage(
             id=str(uuid.uuid4()),
-            role=Role.assistant,
             content=f"Error processing message: {str(e)}"
         )
         await emit_event(
