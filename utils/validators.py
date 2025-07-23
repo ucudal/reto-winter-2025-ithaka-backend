@@ -5,7 +5,7 @@ class ValidationError(Exception):
     pass
 
 def validate_email(email: str) -> None:
-    pattern = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     if not re.match(pattern, email):
         raise ValidationError("El email ingresado no es válido.")
 
