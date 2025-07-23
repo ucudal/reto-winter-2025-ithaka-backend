@@ -42,16 +42,14 @@ async def handle_user_message(websocket: WebSocket, message: str, manager):
 
         await emit_event(manager, websocket, AGUIEvent.RUN_FINISHED, {"id": message_id})
     except Exception as e:
-        error_msg = UserMessage(
-            id=str(uuid.uuid4()),
-            role=Role.assistant,
-            content=f"Error processing message: {str(e)}"
-        )
         await emit_event(
             manager,
             websocket,
-            "message",
-            error_msg.model_dump() if hasattr(error_msg, 'model_dump') else error_msg.__dict__
+            AGUIEvent.RUN_ERROR,
+            {
+                "id": str(uuid.uuid4()),
+                "error": f"Error processing message: {str(e)}"
+            }
         )
 
 def generate_chunks(content: str):
