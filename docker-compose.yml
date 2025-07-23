@@ -1,0 +1,98 @@
+version: "3.8"
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: ithaka_postgres
+    environment:
+      POSTGRES_DB: ithaka_chatbot
+      POSTGRES_USER: ithaka_user
+      POSTGRES_PASSWORD: ithaka_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ithaka_user -d ithaka_chatbot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend de IA con FastAPI
+  chatbot_backend:
+    build: .
+    container_name: ithaka_chatbot_backend
+    environment:
+      # Base de datos
+      DATABASE_URL: postgresql://ithaka_user:ithaka_password@postgres:5432/ithaka_chatbot
+
+      # API Keys (definir en .env local)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+      # Configuración del servidor
+      HOST: 0.0.0.0
+      PORT: 8000
+      DEBUG: true
+
+      # ChromaDB
+      CHROMA_DB_PATH: /app/data/chroma_db
+
+      # JWT
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+
+      # Contexto de Ithaka
+      ITHAKA_CONTEXT: "Eres un asistente de postulaciones para Ithaka, el centro de emprendimiento e innovación de la UCU. Tu objetivo es ayudar a los emprendedores a completar su postulación de manera clara y completa. Mantienes un tono amigable, profesional y motivador."
+
+    volumes:
+      - chroma_data:/app/data/chroma_db
+      - ./logs:/app/logs
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PGAdmin para administrar PostgreSQL (opcional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ithaka_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@ithaka.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    profiles: ["admin"] # Solo se levanta con: docker-compose --profile admin up
+
+volumes:
+  postgres_data:
+    driver: local
+  chroma_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  default:
+    name: ithaka_network
+    driver: bridge

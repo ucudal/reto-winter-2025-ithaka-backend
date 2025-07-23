@@ -1,0 +1,262 @@
+# ===============================================
+# ITHAKA CHATBOT BACKEND - .gitignore
+# ===============================================
+
+# ==========================================
+# ARCHIVOS SENSIBLES
+# ==========================================
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+
+# API Keys y secretos
+secrets/
+*.key
+*.pem
+
+# ==========================================
+# PYTHON
+# ==========================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+.ENV/
+.env/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# ==========================================
+# BASE DE DATOS Y DATOS PERSISTENTES
+# ==========================================
+# ChromaDB data
+data/
+chroma_db/
+*.db
+*.sqlite
+*.sqlite3
+
+# PostgreSQL data
+postgres_data/
+pgdata/
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Backup files
+*.bak
+*.backup
+*.sql.gz
+
+# ==========================================
+# DOCKER
+# ==========================================
+# Docker volumes
+docker-volumes/
+.dockerignore.bak
+
+# Docker Compose overrides
+docker-compose.override.yml
+docker-compose.local.yml
+
+# ==========================================
+# DESARROLLO
+# ==========================================
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Vim
+*.swp
+*.swo
+*~
+
+# ==========================================
+# SISTEMA OPERATIVO
+# ==========================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+
+# ==========================================
+# TEMPORALES Y CACHÉ
+# ==========================================
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Cache directories
+.cache/
+__pycache__/
+.pytest_cache/
+
+# ==========================================
+# ARCHIVOS DE RESPALDO Y TESTING
+# ==========================================
+# Backup files
+*.orig
+*.backup
+*.old
+
+# Test artifacts
+test_results/
+test_reports/
+.coverage
+htmlcov/
+
+# ==========================================
+# ARCHIVOS ESPECÍFICOS DEL PROYECTO
+# ==========================================
+# Datos de prueba sensibles
+test_data_sensitive/
+example_conversations/
+
+# Modelos de ML entrenados (si hubieran)
+models/
+*.pkl
+*.model
+*.weights
+
+# Configuraciones locales de desarrollo
+local_config.py
+dev_settings.py
+
+# Documentación generada
+docs/build/
+docs/_build/
+
+# ==========================================
+# OTROS
+# ==========================================
+# Archivos de bloqueo específicos
+*.lock
+
+# Archivos de configuración personal
+.personal_config
+my_settings.json
+
+# SSH keys (por las dudas)
+id_rsa*
+id_dsa*
+id_ed25519*
+
+# GPG keys
+*.gpg
+*.asc
+
+# Certificados SSL
+*.crt
+*.cert
+*.pem 
