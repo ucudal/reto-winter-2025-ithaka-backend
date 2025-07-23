@@ -35,3 +35,9 @@ uvicorn app.main:app --reload
 
 ### Documentación
 Podes revisar la doc en http://127.0.0.1:8000/docs
+
+# Cómo usar ruff
+
+- Analizar el código:
+  ```bash
+  ruff check .
