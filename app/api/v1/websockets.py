@@ -14,6 +14,6 @@ async def chat_websocket(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            await handle_user_message(websocket, manager, data)
+            await handle_user_message(websocket, data, manager)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
