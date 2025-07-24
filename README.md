@@ -36,7 +36,7 @@ uvicorn app.main:app --reload
 ### Documentación
 Podes revisar la doc en http://127.0.0.1:8000/docs
 
-# Instrucciones para usar la base de datos y el ORM (NUEVO)
+# Instrucciones para usar la base de datos y el ORM
 
 ## 1. Instalar dependencias
 
