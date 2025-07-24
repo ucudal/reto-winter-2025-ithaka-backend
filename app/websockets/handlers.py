@@ -7,20 +7,13 @@ from .enums import AGUIEvent, Role
 from .schemas import UserMessage
 
 
+
 async def emit_event(manager, websocket, action, payload):
     await manager.send_event(websocket, {"action": action, "payload": payload})
-
 
 async def handle_user_message(websocket: WebSocket, message: str, manager):
     try:
         data = json.loads(message)
-        user_msg = UserMessage(
-            id=data.get("id", str(uuid.uuid4())),
-            role=Role.user,
-            content=data.get("content", ""),
-            name=data.get("name")
-        )
-
         message_id = str(uuid.uuid4())
         await emit_event(manager, websocket, AGUIEvent.RUN_STARTED, {"id": message_id})
 
