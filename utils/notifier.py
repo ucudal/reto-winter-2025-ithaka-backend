@@ -29,11 +29,11 @@ def send_email_confirmation(to_email: str, nombre: str = "emprendedor"):
     Recibimos correctamente tu formulario de postulación a través del asistente conversacional. Nuestro equipo revisará tu propuesta y, en caso de avanzar, nos pondremos en contacto contigo por este medio.
 
     Mientras tanto, podés encontrar más recursos y herramientas para emprendedores en:
-    https://ithaka.ucu.edu.uy
+    https://www.ucu.edu.uy/categoria/Ithaka-340
 
     ¡Te deseamos muchos éxitos!
 
-    — Equipo Ithaka AI
+    — Centro Ithaka
     """
 
     msg = MIMEMultipart()
