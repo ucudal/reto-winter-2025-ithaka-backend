@@ -84,3 +84,9 @@ Inicia el servidor de desarrollo:
 ```
 uvicorn app.main:app --reload
 ```
+
+# Cómo usar ruff
+
+- Analizar el código:
+  ```bash
+  ruff check .
