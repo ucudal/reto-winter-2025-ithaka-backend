@@ -7,9 +7,9 @@ from .enums import AGUIEvent, Role
 from .schemas import UserMessage
 
 
-
 async def emit_event(manager, websocket, action, payload):
     await manager.send_event(websocket, {"action": action, "payload": payload})
+
 
 async def handle_user_message(websocket: WebSocket, message: str, manager):
     try:
@@ -50,6 +50,7 @@ async def handle_user_message(websocket: WebSocket, message: str, manager):
                 "error": f"Error processing message: {str(e)}"
             }
         )
+
 
 def generate_chunks(content: str):
     words = content.split()
