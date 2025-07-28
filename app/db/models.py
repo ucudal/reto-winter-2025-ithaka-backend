@@ -5,7 +5,7 @@ from .config.database import Base
 class Conversation(Base):
     __tablename__ = "conversations"
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, nullable=True)
+    email = Column(String(255), nullable=True)
     started_at = Column(DateTime(timezone=True), server_default=func.now())
 
     messages = relationship("Message", back_populates="conversation")
