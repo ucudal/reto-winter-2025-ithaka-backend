@@ -5,7 +5,7 @@ from .config.database import Base
 class Conversation(Base):
     __tablename__ = "conversations"
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, nullable=True)
+    email = Column(String(255), nullable=True)
     started_at = Column(DateTime(timezone=True), server_default=func.now())
 
     messages = relationship("Message", back_populates="conversation")
@@ -14,8 +14,8 @@ class Conversation(Base):
 class Message(Base):
     __tablename__ = "messages"
     id = Column(Integer, primary_key=True, index=True)
-    conv_id = Column(Integer, ForeignKey("conversations.id"))
-    role = Column(String, nullable=False)
+    conv_id = Column(Integer, ForeignKey("conversations.id"), index=True)
+    role = Column(String(50), nullable=False)
     content = Column(String, nullable=False)
     ts = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -24,7 +24,7 @@ class Message(Base):
 class Postulation(Base):
     __tablename__ = "postulations"
     id = Column(Integer, primary_key=True, index=True)
-    conv_id = Column(Integer, ForeignKey("conversations.id"))
+    conv_id = Column(Integer, ForeignKey("conversations.id"), index=True)
     payload_json = Column(JSON, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
