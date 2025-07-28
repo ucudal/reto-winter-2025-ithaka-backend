@@ -1,5 +1,5 @@
 from typing import List
-
+import json
 from fastapi import WebSocket
 
 
@@ -15,5 +15,5 @@ class WebSocketManager:
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
 
-    async def send_message(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
+    async def send_event(self, websocket: WebSocket, event: dict):
+        await websocket.send_text(json.dumps(event))

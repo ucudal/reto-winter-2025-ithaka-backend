@@ -5,3 +5,8 @@ asyncpg
 psycopg2-binary
 greenlet
 python-dotenv
+starlette~=0.47.2
+pydantic~=2.11.7
+fastapi>=0.104.0,<1.0.0
+uvicorn[standard]>=0.24.0,<1.0.0
+ruff
