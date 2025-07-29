@@ -2,9 +2,11 @@ from fastapi import FastAPI
 
 from app.api.v1.websockets import router as websockets_router
 
+v1 = '/api/v1'
+
 app = FastAPI(title="Chatbot Backend", version="1.0.0")
 
-app.include_router(websockets_router, prefix="/api/v1/websockets", tags=["Websockets"])
+app.include_router(websockets_router, prefix=v1 + '/ws', tags=["Websockets"])
 
 
 @app.get("/")
