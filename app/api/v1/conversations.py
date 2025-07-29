@@ -19,6 +19,8 @@ class ConversationResponse(BaseModel):
     email: Optional[str]
     started_at: datetime
 
+    class Config:
+        orm_mode = True
 @router.post("/conversations", response_model=ConversationResponse)
 async def create_conversation(
     conversation: ConversationCreate,
@@ -38,7 +40,7 @@ async def create_conversation(
         await session.rollback()
         raise HTTPException(status_code=500, detail="Error creating conversation")
 
-@router.get("/conversations")
+@router.get("/conversations", response_model=List[ConversationResponse])
 async def get_conversations(
     session: AsyncSession = Depends(get_async_session)
 ) -> List[ConversationResponse]:
