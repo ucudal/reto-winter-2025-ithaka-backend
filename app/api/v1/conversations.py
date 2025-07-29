@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Body
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -8,6 +8,8 @@ from fastapi import HTTPException
 from typing import Optional  
 from datetime import datetime
 from typing import List
+
+from app.langgraph.flow import run_flow
 
 router = APIRouter()
 
@@ -54,3 +56,8 @@ async def get_conversations(
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail="Error retrieving conversations")
+
+@router.post("/chat")
+async def chat_with_supervisor(message: str = Body(..., embed=True)):
+    response = run_flow(message)
+    return {"response": response}
