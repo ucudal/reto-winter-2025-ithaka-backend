@@ -7,7 +7,7 @@ from app.websockets.manager import WebSocketManager
 router = APIRouter()
 
 
-@router.websocket("/ws/chat")
+@router.websocket("/")
 async def chat_websocket(websocket: WebSocket):
     manager = WebSocketManager()
     await manager.connect(websocket)

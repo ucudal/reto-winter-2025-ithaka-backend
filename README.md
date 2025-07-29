@@ -90,3 +90,26 @@ uvicorn app.main:app --reload
 - Analizar el código:
   ```bash
   ruff check .
+
+  ```
+
+# Funcionamiento de notificación por WhatsApp
+- Ingresar a https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn?frameUrl=%2Fconsole%2Fsms%2Fwhatsapp%2Flearn%3Fx-target-region%3Dus1
+- Enviar mensaje al número de WhatsApp +14155238886 con el mensaje `join may-steady`
+- Obtener las credenciales y token de Twilio
+- Agregar un archivo .env con las credenciales de Twilio
+```env
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
+```
+
+# Funcionamiento de notificación por correo
+- Agregar un archivo .env con las variables de entorno de Gmail
+```env
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=ithakapostula@gmail.com
+EMAIL_PASS= clave en tarjeta de Trello
+```
+
