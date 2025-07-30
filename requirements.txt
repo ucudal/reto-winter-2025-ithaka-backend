@@ -2,6 +2,7 @@ fastapi
 uvicorn
 sqlalchemy
 asyncpg
+aiosqlite
 greenlet
 python-dotenv
 starlette~=0.47.2
