@@ -11,3 +11,4 @@ uvicorn[standard]>=0.24.0,<1.0.0
 ruff
 twilio
 python-dotenv
+openai>=1.0.0

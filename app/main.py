@@ -1,13 +1,14 @@
 from app.api.v1.websockets import router as websockets_router
 from fastapi import FastAPI
 from app.api.v1.conversations import router as conversations_router
+from app.api.v1.scoring import router as scoring_router
 
 v1 = '/api/v1'
 
 app = FastAPI(title="Chatbot Backend", version="1.0.0")
 
 app.include_router(conversations_router)
-
+app.include_router(scoring_router, prefix=v1, tags=["Scoring"])
 app.include_router(websockets_router, prefix=v1 + '/ws', tags=["Websockets"])
 
 
