@@ -12,7 +12,7 @@ class AIScoreEngine:
         
     async def evaluar_postulacion(self, texto: str) -> Dict[str, Any]:
         """
-        Evalúa una postulación usando IA para análisis sofisticado.
+        Evalúa una postulación usando GPT-4 para análisis sofisticado.
         """
         if not texto or not texto.strip():
             return {
@@ -24,38 +24,38 @@ class AIScoreEngine:
             }
         
         try:
-            # Prompt para la IA
+            # Prompt optimizado para GPT-4
             prompt = f"""
-            Analiza el siguiente texto de una postulación y evalúa al candidato en tres dimensiones:
+            Analyze the following job application text and evaluate the candidate in three dimensions:
 
-            TEXTO: "{texto}"
+            TEXT: "{texto}"
 
-            Por favor evalúa en una escala de 0-100:
+            Please evaluate on a scale of 0-100:
 
-            1. CREATIVIDAD (0-100): Capacidad de generar ideas originales, pensamiento innovador, vocabulario variado, desarrollo de conceptos únicos.
+            1. CREATIVITY (0-100): Ability to generate original ideas, innovative thinking, varied vocabulary, development of unique concepts, and creative problem-solving approaches.
 
-            2. CLARIDAD (0-100): Comunicación efectiva, estructura del texto, uso de conectores, coherencia lógica, facilidad de comprensión.
+            2. CLARITY (0-100): Effective communication, text structure, use of connectors, logical coherence, ease of understanding, and well-organized thoughts.
 
-            3. COMPROMISO (0-100): Motivación demostrada, dedicación, planificación futura, expresiones de interés genuino, metas claras.
+            3. COMMITMENT (0-100): Demonstrated motivation, dedication, future planning, expressions of genuine interest, clear goals, and long-term vision.
 
-            Responde SOLO con un JSON válido en este formato exacto:
+            Respond ONLY with a valid JSON in this exact format:
             {{
-                "creatividad": [número 0-100],
-                "claridad": [número 0-100],
-                "compromiso": [número 0-100],
-                "score_total": [promedio ponderado: creatividad*0.4 + claridad*0.3 + compromiso*0.3],
-                "analisis": "Breve análisis de 2-3 oraciones explicando la evaluación"
+                "creatividad": [number 0-100],
+                "claridad": [number 0-100],
+                "compromiso": [number 0-100],
+                "score_total": [weighted average: creativity*0.4 + clarity*0.3 + commitment*0.3],
+                "analisis": "Detailed analysis of 3-4 sentences explaining the evaluation with specific examples from the text"
             }}
             """
             
             response = await self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4",
                 messages=[
-                    {"role": "system", "content": "Eres un evaluador experto de postulaciones. Analiza textos de manera objetiva y justa."},
+                    {"role": "system", "content": "You are an expert job application evaluator with deep understanding of human resources and candidate assessment. Analyze texts objectively, fairly, and provide detailed insights. Always respond with valid JSON format."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.3, 
-                max_tokens=300
+                temperature=0.2,  # Más bajo para mayor consistencia
+                max_tokens=500    # Más tokens para análisis detallado
             )
             
             # Extraer y parsear la respuesta JSON
@@ -88,19 +88,19 @@ class AIScoreEngine:
                     raise ValueError("No se encontró JSON válido en la respuesta")
                     
             except (json.JSONDecodeError, ValueError) as e:
-                print(f"Error parseando respuesta de IA: {e}")
+                print(f"Error parseando respuesta de GPT-4: {e}")
                 print(f"Respuesta recibida: {content}")
                 # Fallback a evaluación básica
                 return self._evaluacion_fallback(texto)
                 
         except Exception as e:
-            print(f"Error en evaluación con IA: {e}")
+            print(f"Error en evaluación con GPT-4: {e}")
             # Fallback a evaluación básica
             return self._evaluacion_fallback(texto)
     
     def _evaluacion_fallback(self, texto: str) -> Dict[str, Any]:
         """
-        Evaluación básica de fallback cuando la IA no está disponible.
+        Evaluación básica de fallback cuando GPT-4 no está disponible.
         """
         # Análisis básico basado en longitud y palabras clave
         score_base = min(100, len(texto) // 2)
@@ -110,7 +110,7 @@ class AIScoreEngine:
             "claridad": score_base,
             "compromiso": score_base,
             "score_total": round(score_base, 2),
-            "analisis": "Evaluación básica (IA no disponible)"
+            "analisis": "Evaluación básica (GPT-4 no disponible)"
         }
 
 # Instancia global
@@ -118,6 +118,6 @@ ai_engine = AIScoreEngine()
 
 async def evaluar_postulacion_ai(texto: str) -> Dict[str, Any]:
     """
-    Función wrapper para evaluar postulaciones con IA.
+    Función wrapper para evaluar postulaciones con GPT-4.
     """
     return await ai_engine.evaluar_postulacion(texto) 

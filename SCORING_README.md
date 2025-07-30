@@ -1,15 +1,15 @@
 
 # Sistema de Scoring de Postulaciones
 
-Este sistema permite evaluar automáticamente las postulaciones de los candidatos basándose en el texto de sus respuestas abiertas. **Ahora incluye dos motores de evaluación: uno basado en reglas y otro con IA.**
+Este sistema permite evaluar automáticamente las postulaciones de los candidatos basándose en el texto de sus respuestas abiertas. **Incluye dos motores de evaluación: reglas predefinidas y OpenAI GPT-4.**
 
 ## Características
 
 - **Evaluación automática**: Analiza textos y asigna scores en tres dimensiones
-- **Dos motores de evaluación**: Reglas predefinidas o IA (OpenAI GPT)
+- **Dos motores de evaluación**: Reglas predefinidas o OpenAI GPT-4
 - **API REST**: Endpoints para evaluar textos y procesar postulaciones
 - **Base de datos**: Almacena y actualiza scores en la base de datos
-- **Análisis inteligente**: La IA proporciona análisis detallado de cada postulación
+- **Análisis inteligente**: GPT-4 proporciona análisis detallado de cada postulación
 
 ## Motores de Evaluación
 
@@ -18,9 +18,10 @@ Este sistema permite evaluar automáticamente las postulaciones de los candidato
 - **Ventajas**: Rápido, sin costos, consistente
 - **Desventajas**: Menos sofisticado, no entiende contexto
 
-### 2. Motor de IA (OpenAI GPT)
-- **Análisis inteligente**: Usa GPT-3.5-turbo para evaluación contextual
-- **Ventajas**: Más preciso, entiende matices, proporciona análisis
+### 2. Motor de IA OpenAI GPT-4
+- **Análisis inteligente**: Usa GPT-4 para evaluación contextual avanzada
+- **Prompt optimizado**: En inglés para mejor rendimiento
+- **Ventajas**: Más preciso, entiende matices complejos, proporciona análisis detallado
 - **Desventajas**: Requiere API key, tiene costo por uso
 
 ## Dimensiones de Evaluación
@@ -29,16 +30,19 @@ Este sistema permite evaluar automáticamente las postulaciones de los candidato
 - **Vocabulario variado**: Diversidad de palabras utilizadas
 - **Desarrollo de ideas**: Longitud y profundidad del texto
 - **Palabras creativas**: Uso de términos relacionados con innovación
+- **Enfoques creativos**: Solución de problemas de manera original
 
 ### 2. Claridad (30% del score total)
 - **Estructura**: Uso de conectores y puntuación
 - **Coherencia**: Organización lógica del texto
 - **Longitud apropiada**: Balance entre detalle y concisión
+- **Pensamiento organizado**: Ideas bien estructuradas
 
 ### 3. Compromiso (30% del score total)
 - **Motivación**: Expresiones de interés y pasión
 - **Planificación**: Referencias a objetivos y metas futuras
 - **Dedicación**: Palabras relacionadas con esfuerzo y constancia
+- **Visión a largo plazo**: Planes y aspiraciones claras
 
 ## Estructura del Proyecto
 
@@ -47,7 +51,7 @@ app/
 ├── services/
 │   ├── scoring_service.py      # Servicio principal de scoring
 │   ├── score_engine.py         # Motor de evaluación con reglas
-│   └── ai_score_engine.py     # Motor de evaluación con IA
+│   └── ai_score_engine.py     # Motor de evaluación con GPT-4
 ├── api/v1/
 │   └── scoring.py             # Endpoints de la API
 └── db/
@@ -81,7 +85,7 @@ texto = "Me apasiona la tecnología y quiero innovar..."
 scores = evaluar_postulacion(texto)
 ```
 
-#### Con Motor de IA
+#### Con Motor de IA OpenAI GPT-4
 ```python
 from app.services.ai_score_engine import evaluar_postulacion_ai
 
@@ -98,8 +102,8 @@ from app.services.scoring_service import procesar_postulaciones
 # Procesa con motor de reglas
 await procesar_postulaciones(use_ai=False)
 
-# Procesa con motor de IA
-await procesar_postulaciones(use_ai=True)
+# Procesa con motor de OpenAI GPT-4
+await procesar_postulaciones(use_ai=True, ai_provider="openai")
 ```
 
 ### 3. API Endpoints
@@ -113,11 +117,12 @@ POST /api/v1/scoring/evaluate
     "use_ai": false
 }
 
-# Con motor de IA
+# Con motor de OpenAI GPT-4
 POST /api/v1/scoring/evaluate
 {
     "texto": "Texto a evaluar...",
-    "use_ai": true
+    "use_ai": true,
+    "ai_provider": "openai"
 }
 ```
 
@@ -126,8 +131,8 @@ POST /api/v1/scoring/evaluate
 # Con motor de reglas
 POST /api/v1/scoring/process-all?use_ai=false
 
-# Con motor de IA
-POST /api/v1/scoring/process-all?use_ai=true
+# Con motor de OpenAI GPT-4
+POST /api/v1/scoring/process-all?use_ai=true&ai_provider=openai
 ```
 
 #### Procesar postulación específica
@@ -135,8 +140,8 @@ POST /api/v1/scoring/process-all?use_ai=true
 # Con motor de reglas
 POST /api/v1/scoring/process/123?use_ai=false
 
-# Con motor de IA
-POST /api/v1/scoring/process/123?use_ai=true
+# Con motor de OpenAI GPT-4
+POST /api/v1/scoring/process/123?use_ai=true&ai_provider=openai
 ```
 
 ## Pruebas
@@ -146,7 +151,7 @@ POST /api/v1/scoring/process/123?use_ai=true
 python test_scoring_simple.py
 ```
 
-### Prueba del Motor de IA
+### Prueba del Motor de IA OpenAI GPT-4
 ```bash
 python test_ai_scoring.py
 ```
@@ -169,10 +174,11 @@ python app/test_scoring.py
 - ❌ **Limitado**: No entiende contexto complejo
 - ❌ **Rígido**: Basado en palabras clave
 
-### Motor de IA
-- ✅ **Inteligente**: Entiende contexto y matices
+### Motor de IA OpenAI GPT-4
+- ✅ **Inteligente**: Entiende contexto y matices complejos
 - ✅ **Flexible**: Se adapta a diferentes estilos
-- ✅ **Análisis**: Proporciona explicaciones detalladas
+- ✅ **Análisis detallado**: Proporciona explicaciones profundas
+- ✅ **Avanzado**: Mejor comprensión del lenguaje natural
 - ❌ **Costo**: Requiere API key y tiene costos
 - ❌ **Latencia**: Tiempo de respuesta de la API
 
@@ -188,14 +194,14 @@ python app/test_scoring.py
 }
 ```
 
-### Motor de IA
+### Motor de IA OpenAI GPT-4
 ```json
 {
-    "creatividad": 82,
-    "claridad": 78,
-    "compromiso": 88,
-    "score_total": 82.8,
-    "analisis": "El candidato demuestra alta creatividad con vocabulario variado y conceptos innovadores. La claridad es buena con estructura coherente. Muestra fuerte compromiso con metas específicas y motivación genuina."
+    "creatividad": 85,
+    "claridad": 82,
+    "compromiso": 90,
+    "score_total": 85.8,
+    "analisis": "El candidato demuestra excelente creatividad con vocabulario sofisticado y conceptos innovadores como 'transformar la manera en que las personas interactúan con la tecnología'. La claridad es notable con estructura coherente y transiciones fluidas. Muestra compromiso excepcional con metas específicas, motivación genuina y una visión clara del futuro en el campo de la IA."
 }
 ```
 
@@ -211,7 +217,7 @@ score_total = (creatividad * 0.4 + claridad * 0.3 + compromiso * 0.3)
 ```python
 # En ai_score_engine.py
 prompt = f"""
-Analiza el siguiente texto de una postulación...
+Analyze the following job application text...
 [Tu prompt personalizado aquí]
 """
 ```
@@ -228,7 +234,7 @@ Analiza el siguiente texto de una postulación...
 - El motor de IA usará evaluación de fallback
 
 ### Error: "Rate limit exceeded"
-- El motor de IA tiene límites de uso
+- Los motores de IA tienen límites de uso
 - Considera usar el motor de reglas para pruebas masivas
 
 ### Error: "Database connection failed"
