@@ -1,13 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from typing import List, Optional
+from datetime import datetime
+
 from app.db.models import Conversation
 from app.db.config.database import get_async_session
-from fastapi import HTTPException
-from typing import Optional  
-from datetime import datetime
-from typing import List
 
 router = APIRouter()
 
