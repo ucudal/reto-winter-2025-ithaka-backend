@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
 from pydantic import BaseModel
 from app.services.scoring_service import procesar_postulaciones, procesar_postulacion_especifica, obtener_postulaciones
-from app.services.score_engine import evaluar_postulacion
 from app.services.ai_score_engine import evaluar_postulacion_ai
 
 router = APIRouter()
@@ -42,6 +41,7 @@ async def evaluate_text(request: ScoringRequest) -> ScoringResponse:
         if request.use_ai:
             scores = await evaluar_postulacion_ai(request.texto)
         else:
+            from app.services.score_engine import evaluar_postulacion
             scores = evaluar_postulacion(request.texto)
         
         return ScoringResponse(**scores)

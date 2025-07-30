@@ -1,9 +1,7 @@
-import asyncio
 import json
 from typing import Dict, Any, Optional
 from sqlalchemy import text
 from app.db.config.database import SessionLocal
-from app.db.models import Postulation
 from app.services.score_engine import evaluar_postulacion
 from app.services.ai_score_engine import evaluar_postulacion_ai
 
