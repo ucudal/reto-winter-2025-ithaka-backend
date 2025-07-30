@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, Body
-from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from app.db.models import Conversation
-from app.db.config.database import get_async_session
-from fastapi import HTTPException
-from typing import Optional  
 from datetime import datetime
-from typing import List
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.config.database import get_async_session
+from app.db.models import Conversation
 
 router = APIRouter()
 
@@ -34,14 +34,14 @@ async def create_conversation(
             email=new_conv.email,
             started_at=new_conv.started_at
         )
-    except Exception as e:
+    except Exception:
         await session.rollback()
         raise HTTPException(status_code=500, detail="Error creating conversation")
 
 @router.get("/conversations")
 async def get_conversations(
     session: AsyncSession = Depends(get_async_session)
-) -> List[ConversationResponse]:
+) -> list[ConversationResponse]:
     try:
         result = await session.execute(select(Conversation))
         conversations = result.scalars().all()
@@ -52,5 +52,5 @@ async def get_conversations(
                 started_at=c.started_at
             ) for c in conversations
         ]
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Error retrieving conversations")

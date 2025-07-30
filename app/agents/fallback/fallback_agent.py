@@ -1,6 +1,6 @@
-from typing import Dict, Any
+from typing import Any
 
 
-def fallback_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
+def fallback_agent_node(state: dict[str, Any]) -> dict[str, Any]:
     state['response'] = "No entendí tu intención. ¿Podés reformular tu consulta?"
     return state

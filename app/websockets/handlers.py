@@ -3,9 +3,11 @@ import uuid
 
 from fastapi import WebSocket
 
+from app.langgraph.flow import run_flow
+
 from .enums import AGUIEvent, Role
 from .schemas import UserMessage
-from app.langgraph.flow import run_flow
+
 
 async def emit_event(manager, websocket, action, payload):
     await manager.send_event(websocket, {"action": action, "payload": payload})

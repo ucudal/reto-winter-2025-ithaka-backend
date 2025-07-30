@@ -1,13 +1,15 @@
+import logging
+from functools import lru_cache
+from typing import TypedDict
+
 from langgraph.constants import END
 from langgraph.graph import StateGraph
-import logging
 
 from app.agents.fallback.fallback_agent import fallback_agent_node
+from app.agents.faq.faq_agent import faq_agent_node
 from app.agents.supervisor.supervisor_agent import supervisor_node
 from app.agents.wizard.wizard_agent import wizard_agent_node
-from app.agents.faq.faq_agent import faq_agent_node
-from typing import TypedDict
-from functools import lru_cache
+
 
 class ChatState(TypedDict, total=False):
     user_message: str
