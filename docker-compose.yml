@@ -31,24 +31,4 @@ services:
       retries: 3
       start_period: 40s
 
-  # PostgreSQL database (descomenta todo este bloque para usar PostgreSQL)
-  # postgres:
-  #   image: postgres:15-alpine
-  #   container_name: ithaka-postgres
-  #   environment:
-  #     POSTGRES_DB: ithaka
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgres
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   restart: unless-stopped
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 5
-
-# volumes:
-#   postgres_data:
+  
