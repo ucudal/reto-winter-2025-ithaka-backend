@@ -1,5 +1,4 @@
 import logging
-from typing import List, Dict
 
 INTENT_KEYWORDS = {
     "postulacion": ["postular", "postulación", "aplicar", "trabajo", "meter", "meterme"],

@@ -2,7 +2,6 @@ from langgraph.constants import END
 from langgraph.graph import StateGraph
 import logging
 
-from app.agents.end.end import end_node
 from app.agents.fallback.fallback_agent import fallback_agent_node
 from app.agents.supervisor.supervisor_agent import supervisor_node
 from app.agents.wizard.wizard_agent import wizard_agent_node
