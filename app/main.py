@@ -1,6 +1,7 @@
-from app.api.v1.websockets import router as websockets_router
 from fastapi import FastAPI
+
 from app.api.v1.conversations import router as conversations_router
+from app.api.v1.websockets import router as websockets_router
 
 v1 = '/api/v1'
 

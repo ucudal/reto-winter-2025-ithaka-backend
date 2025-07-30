@@ -3,6 +3,8 @@ import uuid
 
 from fastapi import WebSocket
 
+from app.langgraph.flow import run_flow
+
 from .enums import AGUIEvent, Role
 from .schemas import UserMessage
 
@@ -24,10 +26,9 @@ async def handle_user_message(websocket: WebSocket, message: str, manager):
         message_id = str(uuid.uuid4())
         await emit_event(manager, websocket, AGUIEvent.RUN_STARTED, {"id": message_id})
 
-        # aca mandarle a chat_service el mensaje para que responda la ia
+        grafo_response = run_flow(user_msg.content)
 
-        bot_content = f"Bot: You said '{user_msg.content}'"
-        for chunk_index, chunk in enumerate(generate_chunks(bot_content)):
+        for chunk_index, chunk in enumerate(generate_chunks(grafo_response)):
             await emit_event(
                 manager,
                 websocket,
