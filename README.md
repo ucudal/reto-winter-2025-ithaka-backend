@@ -1,5 +1,25 @@
 # reto-winter-2025-ithaka-backend
 
+##  Opciones de Ejecución
+
+Puedes ejecutar esta aplicación de **dos formas**:
+
+### 1.  **Docker (Recomendado para producción)**
+```bash
+# Opción A: Usar imagen del registry
+docker pull crretoxmas2024.azurecr.io/ithaka-backend:latest
+docker run -p 8000:8000 crretoxmas2024.azurecr.io/ithaka-backend:latest
+
+# Opción B: Construir localmente
+docker build -t ithaka-backend .
+docker run -p 8000:8000 ithaka-backend
+
+# Opción C: Docker Compose (desarrollo)
+docker-compose up
+```
+
+### 2.  **Desarrollo Local (Python)**
+
 ## Requisitos
 
 - Python 3.12+
@@ -93,6 +113,31 @@ uvicorn app.main:app --reload
 
   ```
 
+## CI/CD y Docker
+
+### Pipeline Automático
+- **Trigger:** Push a ramas `DevOps` o `main`
+- **Registry:** `crretoxmas2024.azurecr.io/ithaka-backend`
+- **Tags:** Automático por rama y commit SHA
+
+### Usar imagen de producción
+```bash
+# Pull de la imagen del registry
+docker pull crretoxmas2024.azurecr.io/ithaka-backend:latest
+
+# Ejecutar contenedor
+docker run -p 8000:8000 -e DATABASE_URL=sqlite+aiosqlite:///./app.db crretoxmas2024.azurecr.io/ithaka-backend:latest
+```
+
+### Variables de entorno para Docker
+```env
+DATABASE_URL=sqlite+aiosqlite:///./app.db  # Para desarrollo con SQLite
+# O para PostgreSQL:
+# DATABASE_URL=postgresql+asyncpg://user:password@host:5432/database
+```
+
+---
+
 # Funcionamiento de notificación por WhatsApp
 - Ingresar a https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn?frameUrl=%2Fconsole%2Fsms%2Fwhatsapp%2Flearn%3Fx-target-region%3Dus1
 - Enviar mensaje al número de WhatsApp +14155238886 con el mensaje `join may-steady`
@@ -113,3 +158,4 @@ EMAIL_USER=ithakapostula@gmail.com
 EMAIL_PASS= clave en tarjeta de Trello
 ```
 
+# CI/CD Pipeline Test - Wed Jul 30 11:49:28 -03 2025
