@@ -7,9 +7,11 @@ from typing import Dict, Any
 from langgraph.graph import StateGraph, END
 from .state import ConversationState
 from ..agents.supervisor import route_message, decide_next_agent
-from ..agents.wizard import handle_wizard_flow
+# TODO: Integrar wizard agent cuando esté disponible
+# from ..agents.wizard import handle_wizard_flow
 from ..agents.faq import handle_faq_query
-from ..agents.validator import validate_data
+# TODO: Integrar validator cuando esté disponible
+# from ..agents.validator import validate_data
 import logging
 
 logger = logging.getLogger(__name__)
@@ -29,9 +31,11 @@ class IthakaWorkflow:
 
         # Agregar nodos (agentes)
         workflow.add_node("supervisor", route_message)
-        workflow.add_node("wizard", handle_wizard_flow)
+        # TODO: Agregar wizard node cuando esté disponible
+        # workflow.add_node("wizard", handle_wizard_flow)
         workflow.add_node("faq", handle_faq_query)
-        workflow.add_node("validator", validate_data)
+        # TODO: Agregar validator node cuando esté disponible
+        # workflow.add_node("validator", validate_data)
 
         # Definir punto de entrada
         workflow.set_entry_point("supervisor")
@@ -41,17 +45,21 @@ class IthakaWorkflow:
             "supervisor",
             decide_next_agent,
             {
-                "wizard": "wizard",
+                # TODO: Agregar wizard cuando esté disponible
+                # "wizard": "wizard",
                 "faq": "faq",
-                "validator": "validator",
+                # TODO: Agregar validator cuando esté disponible
+                # "validator": "validator",
                 "end": END
             }
         )
 
         # Los otros agentes terminan el flujo
-        workflow.add_edge("wizard", END)
+        # TODO: Agregar wizard edge cuando esté disponible
+        # workflow.add_edge("wizard", END)
         workflow.add_edge("faq", END)
-        workflow.add_edge("validator", END)
+        # TODO: Agregar validator edge cuando esté disponible
+        # workflow.add_edge("validator", END)
 
         # Compilar el grafo
         return workflow.compile()

@@ -3,9 +3,8 @@ Agente FAQ - Responde preguntas frecuentes usando búsqueda vectorial
 """
 
 import os
-from typing import Dict, Any, List
+from typing import Any
 from openai import AsyncOpenAI
-from sqlalchemy.ext.asyncio import AsyncSession
 from ..db.config.database import get_async_session
 from ..services.embedding_service import embedding_service
 from ..graph.state import ConversationState
@@ -94,7 +93,7 @@ Mientras tanto, puedes:
     async def _generate_contextual_response(
         self,
         user_query: str,
-        similar_faqs: List[Dict[str, Any]]
+        similar_faqs: list[dict[str, Any]]
     ) -> str:
         """Genera una respuesta contextualizada basada en FAQs similares"""
 

@@ -4,13 +4,8 @@ Analiza la intención del usuario y decide a qué agente derivar
 """
 
 import os
-from typing import Dict, Any, Optional
 from openai import AsyncOpenAI
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from ..graph.state import ConversationState
-from ..db.config.database import get_async_session
-from ..db.models import WizardSession
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,25 +23,23 @@ class SupervisorAgent:
 
         user_message = state["user_message"].lower().strip()
         chat_history = state.get("chat_history", [])
-        conversation_id = state.get("conversation_id")
+        # conversation_id = state.get("conversation_id") # TODO: Agregar cuando esté disponible
 
-        # Verificar si hay una sesión activa del wizard (primero en state, luego en BD)
-        if state.get("wizard_session_id") and state.get("wizard_state") == "ACTIVE":
-            logger.info("Routing to wizard - active session detected in state")
-            return self._route_to_wizard(state)
+        # TODO: Verificar sesiones activas del wizard cuando esté disponible
+        # if state.get("wizard_session_id") and state.get("wizard_state") == "ACTIVE":
+        #     logger.info("Routing to wizard - active session detected in state")
+        #     return self._route_to_wizard(state)
 
-        # Si no está en state pero hay conversation_id, verificar en BD
-        if conversation_id:
-            active_wizard_session = await self._check_active_wizard_session(conversation_id)
-            if active_wizard_session:
-                logger.info(
-                    f"Routing to wizard - active session {active_wizard_session['id']} found in DB")
-                # Cargar información de la sesión en el state
-                state["wizard_session_id"] = active_wizard_session["id"]
-                state["wizard_state"] = active_wizard_session["state"]
-                state["current_question"] = active_wizard_session["current_question"]
-                state["wizard_responses"] = active_wizard_session["responses"]
-                return self._route_to_wizard(state)
+        # TODO: Verificar sesiones en BD cuando wizard esté disponible
+        # if conversation_id:
+        #     active_wizard_session = await self._check_active_wizard_session(conversation_id)
+        #     if active_wizard_session:
+        #         logger.info(f"Routing to wizard - active session {active_wizard_session['id']} found in DB")
+        #         state["wizard_session_id"] = active_wizard_session["id"]
+        #         state["wizard_state"] = active_wizard_session["state"]
+        #         state["current_question"] = active_wizard_session["current_question"]
+        #         state["wizard_responses"] = active_wizard_session["responses"]
+        #         return self._route_to_wizard(state)
 
         # Análisis de intención usando patrones simples primero
         intention = self._analyze_intention_simple(user_message)
@@ -67,12 +60,12 @@ class SupervisorAgent:
     def _analyze_intention_simple(self, message: str) -> str:
         """Análisis simple de intención basado en palabras clave"""
 
-        # Patrones para postulación/wizard
-        wizard_keywords = [
-            "postular", "emprender", "formulario", "idea", "negocio",
-            "startup", "proyecto", "emprendimiento", "incubadora",
-            "quiero postular", "tengo una idea"
-        ]
+        # TODO: Patrones para wizard cuando esté disponible
+        # wizard_keywords = [
+        #     "postular", "emprender", "formulario", "idea", "negocio",
+        #     "startup", "proyecto", "emprendimiento", "incubadora",
+        #     "quiero postular", "tengo una idea"
+        # ]
 
         # Patrones para FAQ
         faq_keywords = [
@@ -81,16 +74,16 @@ class SupervisorAgent:
             "actividades", "contacto", "campus", "costo"
         ]
 
-        # Comandos del wizard
-        wizard_commands = ["volver", "cancelar", "continuar", "siguiente"]
+        # TODO: Comandos del wizard cuando esté disponible
+        # wizard_commands = ["volver", "cancelar", "continuar", "siguiente"]
 
-        # Verificar comandos del wizard
-        if any(cmd in message for cmd in wizard_commands):
-            return "wizard"
+        # TODO: Verificar comandos del wizard cuando esté disponible
+        # if any(cmd in message for cmd in wizard_commands):
+        #     return "wizard"
 
-        # Verificar patrones de postulación
-        if any(keyword in message for keyword in wizard_keywords):
-            return "wizard"
+        # TODO: Verificar patrones de postulación cuando wizard esté disponible
+        # if any(keyword in message for keyword in wizard_keywords):
+        #     return "wizard"
 
         # Verificar patrones de FAQ
         if any(keyword in message for keyword in faq_keywords):
@@ -122,17 +115,17 @@ MENSAJE ACTUAL DEL USUARIO:
 
 REGLAS DE CLASIFICACIÓN:
 - "faq" - SIEMPRE para preguntas sobre: programas (Fellows, minor), cursos, información de Ithaka, costos, convocatorias, campus, requisitos, actividades. Incluye preguntas indirectas como "podrías explicarme...", "sabes sobre...", "me gustaría saber..."
-- "wizard" - SOLO para postular ideas/proyectos o cuando el usuario dice explícitamente "quiero postular", "tengo una idea para postular"
-- "validator" - SOLO para validar datos específicos (email, teléfono, etc.)
+- TODO: "validator" - SOLO para validar datos específicos cuando esté disponible
+- TODO: "wizard" - SOLO para postular ideas/proyectos cuando esté disponible
 
 EJEMPLOS:
 - "¿Qué es el programa Fellows?" → faq
 - "no se si podrías explicarme qué es el programa fellows?" → faq  
 - "sabes sobre los cursos de Ithaka?" → faq
-- "quiero postular mi idea" → wizard
-- "valida este email: test@test.com" → validator
+- TODO: "valida este email: test@test.com" → validator (cuando esté disponible)
+- TODO: "quiero postular mi idea" → wizard (cuando esté disponible)
 
-Responde ÚNICAMENTE con una palabra: faq, wizard, validator
+Responde ÚNICAMENTE con una palabra: faq
 """
 
             response = await self.client.chat.completions.create(
@@ -148,7 +141,8 @@ Responde ÚNICAMENTE con una palabra: faq, wizard, validator
             intention = response.choices[0].message.content.strip().lower()
 
             # Validar respuesta
-            if intention in ["wizard", "faq", "validator"]:
+            # TODO: Agregar "validator" y "wizard" cuando estén disponibles
+            if intention in ["faq"]:
                 return intention
             else:
                 logger.warning(f"Invalid AI intention response: {intention}")
@@ -158,40 +152,36 @@ Responde ÚNICAMENTE con una palabra: faq, wizard, validator
             logger.error(f"Error in AI intention analysis: {e}")
             return "faq"  # Safe fallback
 
-    def _route_to_wizard(self, state: ConversationState) -> ConversationState:
-        """Rutea específicamente al wizard"""
-        state["supervisor_decision"] = "wizard"
-        state["current_agent"] = "wizard"
-        return state
+    # TODO: Implementar cuando wizard esté disponible
+    # def _route_to_wizard(self, state: ConversationState) -> ConversationState:
+    #     """Rutea específicamente al wizard"""
+    #     state["supervisor_decision"] = "wizard"
+    #     state["current_agent"] = "wizard"
+    #     return state
 
-    async def _check_active_wizard_session(self, conversation_id: int) -> Optional[Dict[str, Any]]:
-        """Verifica si hay una sesión activa del wizard en la base de datos"""
-
-        try:
-            async for session in get_async_session():
-                # Buscar sesión activa, pausada o iniciando
-                stmt = select(WizardSession).where(
-                    WizardSession.conv_id == conversation_id,
-                    WizardSession.state.in_(["ACTIVE", "PAUSED", "STARTING"])
-                )
-                result = await session.execute(stmt)
-                active_session = result.scalar_one_or_none()
-
-                if active_session:
-                    return {
-                        "id": active_session.id,
-                        "conv_id": active_session.conv_id,
-                        "current_question": active_session.current_question,
-                        "responses": active_session.responses or {},
-                        "state": active_session.state
-                    }
-
-                break  # Solo necesitamos una iteración
-
-        except Exception as e:
-            logger.error(f"Error checking active wizard session: {e}")
-
-        return None
+    # TODO: Implementar cuando wizard esté disponible
+    # async def _check_active_wizard_session(self, conversation_id: int) -> Optional[Dict[str, Any]]:
+    #     """Verifica si hay una sesión activa del wizard en la base de datos"""
+    #     try:
+    #         async for session in get_async_session():
+    #             stmt = select(WizardSession).where(
+    #                 WizardSession.conv_id == conversation_id,
+    #                 WizardSession.state.in_(["ACTIVE", "PAUSED", "STARTING"])
+    #             )
+    #             result = await session.execute(stmt)
+    #             active_session = result.scalar_one_or_none()
+    #             if active_session:
+    #                 return {
+    #                         "id": active_session.id,
+    #                         "conv_id": active_session.conv_id,
+    #                         "current_question": active_session.current_question,
+    #                         "responses": active_session.responses or {},
+    #                         "state": active_session.state
+    #                     }
+    #             break
+    #     except Exception as e:
+    #         logger.error(f"Error checking active wizard session: {e}")
+    #     return None
 
     def decide_next_agent(self, state: ConversationState) -> str:
         """Decide el próximo agente en el flujo del grafo"""
@@ -200,7 +190,8 @@ Responde ÚNICAMENTE con una palabra: faq, wizard, validator
         supervisor_decision = state.get("supervisor_decision")
 
         # Si hay decisión del supervisor, seguir esa ruta
-        if supervisor_decision in ["wizard", "faq", "validator"]:
+        # TODO: Agregar "validator" y "wizard" cuando estén disponibles
+        if supervisor_decision in ["faq"]:
             return supervisor_decision
 
         # Si no hay decisión clara, ir a FAQ como default
