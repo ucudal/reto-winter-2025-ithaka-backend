@@ -2,7 +2,7 @@
 Preguntas del wizard de postulación de Ithaka
 """
 
-from typing import Dict, List, Any
+from typing import Any, Optional
 
 # Preguntas del wizard organizadas por categorías
 WIZARD_QUESTIONS = {
@@ -173,12 +173,12 @@ WIZARD_QUESTIONS = {
 }
 
 
-def get_question(question_number: int) -> Dict[str, Any]:
+def get_question(question_number: int) -> Optional[dict[str, Any]]:
     """Obtiene una pregunta específica por número"""
     return WIZARD_QUESTIONS.get(question_number, {})
 
 
-def get_questions_by_type(question_type: str) -> Dict[int, Dict[str, Any]]:
+def get_questions_by_type(question_type: str) -> dict[int, dict[str, Any]]:
     """Obtiene todas las preguntas de un tipo específico"""
     return {
         num: question for num, question in WIZARD_QUESTIONS.items()
@@ -186,7 +186,7 @@ def get_questions_by_type(question_type: str) -> Dict[int, Dict[str, Any]]:
     }
 
 
-def is_conditional_question(question_number: int, responses: Dict[str, Any]) -> bool:
+def is_conditional_question(question_number: int, responses: dict[str, Any]) -> bool:
     """Verifica si una pregunta condicional debe mostrarse"""
     question = get_question(question_number)
 
@@ -203,6 +203,6 @@ def is_conditional_question(question_number: int, responses: Dict[str, Any]) -> 
     return user_response in condition_values
 
 
-def should_continue_after_question_11(responses: Dict[str, Any]) -> bool:
+def should_continue_after_question_11(responses: dict[str, Any]) -> bool:
     """Determina si continuar con preguntas evaluativas después de la 11"""
     return responses.get("has_idea") == "SI"

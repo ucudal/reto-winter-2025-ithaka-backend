@@ -15,7 +15,11 @@ class SupervisorAgent:
     """Agente supervisor que analiza intenciones y rutea conversaciones"""
 
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is required")
+
+        self.client = AsyncOpenAI(api_key=api_key)
         self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
     async def route_message(self, state: ConversationState) -> ConversationState:
@@ -209,6 +213,6 @@ async def route_message(state: ConversationState) -> ConversationState:
     return await supervisor_agent.route_message(state)
 
 
-def decide_next_agent(state: ConversationState) -> str:
+def decide_next_agent_wrapper(state: ConversationState) -> str:
     """Función wrapper para routing condicional en LangGraph"""
     return supervisor_agent.decide_next_agent(state)

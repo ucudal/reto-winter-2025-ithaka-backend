@@ -239,13 +239,19 @@ import asyncio
 from app.services.chat_service import chat_service
 
 async def test_wizard():
-    result = await chat_service.process_message(
-        user_message="Quiero postular mi idea",
-        user_email=None,
-        conversation_id=None
-    )
-    print(f"Agent usado: {result.get('agent_used')}")
-    print(f"Respuesta: {result.get('response')}")
+    try:
+        # TODO: Uncomment when wizard agent is implemented
+        # from app.agents.wizard import wizard_agent
+
+        result = await chat_service.process_message(
+            user_message="Quiero postular mi idea",
+            user_email=None,
+            conversation_id=None
+        )
+        print(f"Agent usado: {result.get('agent_used')}")
+        print(f"Respuesta: {result.get('response')}")
+    except ImportError as e:
+        print(f"Wizard agent not yet implemented: {e}")
 
 asyncio.run(test_wizard())
 ```

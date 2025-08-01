@@ -4,7 +4,7 @@ Integra con las funciones de validación existentes en utils/validators.py
 """
 
 import re
-from typing import Dict, Any, List, Optional
+from typing import Any, Optional
 from ..graph.state import ConversationState
 from utils.validators import validate_email, validate_phone, validate_ci, ValidationError
 import logging
@@ -78,7 +78,7 @@ class ValidatorAgent:
 
         return state
 
-    def _validate_by_type(self, validation_type: str, value: str) -> Dict[str, Any]:
+    def _validate_by_type(self, validation_type: str, value: str) -> dict[str, Any]:
         """Ejecuta validación específica según el tipo"""
 
         try:
@@ -112,7 +112,7 @@ class ValidatorAgent:
         except Exception as e:
             return {"is_valid": False, "error": str(e)}
 
-    def _validate_email(self, email: str) -> Dict[str, Any]:
+    def _validate_email(self, email: str) -> dict[str, Any]:
         """Valida email usando función existente"""
         try:
             validate_email(email)
@@ -124,7 +124,7 @@ class ValidatorAgent:
         except ValidationError as e:
             return {"is_valid": False, "error": str(e)}
 
-    def _validate_phone(self, phone: str) -> Dict[str, Any]:
+    def _validate_phone(self, phone: str) -> dict[str, Any]:
         """Valida teléfono usando función existente"""
         try:
             validate_phone(phone)
@@ -136,7 +136,7 @@ class ValidatorAgent:
         except ValidationError as e:
             return {"is_valid": False, "error": str(e)}
 
-    def _validate_ci(self, ci: str) -> Dict[str, Any]:
+    def _validate_ci(self, ci: str) -> dict[str, Any]:
         """Valida cédula usando función existente"""
         try:
             validate_ci(ci)
@@ -148,7 +148,7 @@ class ValidatorAgent:
         except ValidationError as e:
             return {"is_valid": False, "error": str(e)}
 
-    def _validate_name(self, name: str) -> Dict[str, Any]:
+    def _validate_name(self, name: str) -> dict[str, Any]:
         """Valida nombre y apellido"""
         name = name.strip()
 
@@ -169,7 +169,7 @@ class ValidatorAgent:
             "normalized_value": name.title()  # Primera letra mayúscula
         }
 
-    def _validate_location(self, location: str) -> Dict[str, Any]:
+    def _validate_location(self, location: str) -> dict[str, Any]:
         """Valida ubicación (país y ciudad)"""
         location = location.strip()
 
@@ -189,7 +189,7 @@ class ValidatorAgent:
             "normalized_value": location.title()
         }
 
-    def _validate_text_min_length(self, text: str, min_length: int = 10) -> Dict[str, Any]:
+    def _validate_text_min_length(self, text: str, min_length: int = 10) -> dict[str, Any]:
         """Valida texto con longitud mínima"""
         text = text.strip()
 
@@ -205,7 +205,7 @@ class ValidatorAgent:
             "normalized_value": text
         }
 
-    def _validate_options(self, option_type: str, value: str) -> Dict[str, Any]:
+    def _validate_options(self, option_type: str, value: str) -> dict[str, Any]:
         """Valida que el valor esté entre las opciones válidas"""
         value = value.strip()
         valid_options = self.valid_options.get(option_type, [])
@@ -246,9 +246,9 @@ class ValidatorAgent:
 
     def validate_wizard_response(
         self,
-        question_config: Dict[str, Any],
+        question_config: dict[str, Any],
         user_response: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Método específico para validar respuestas del wizard"""
 
         validation_type = question_config.get("validation")

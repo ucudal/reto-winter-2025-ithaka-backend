@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Any
+from typing import Optional, Any
 from typing_extensions import TypedDict
 from datetime import datetime
 
@@ -10,11 +10,11 @@ class WizardQuestionState(TypedDict):
     question_type: str  # "personal", "evaluativa", "opcional"
     user_response: Optional[str]
     is_valid: bool
-    validation_errors: List[str]
+    validation_errors: list[str]
     evaluation_feedback: Optional[str]
     needs_improvement: bool
     iteration_count: int
 
 
 # Definir ConversationState como un diccionario normal para compatibilidad con LangGraph
-ConversationState = Dict[str, Any]
+ConversationState = dict[str, Any]

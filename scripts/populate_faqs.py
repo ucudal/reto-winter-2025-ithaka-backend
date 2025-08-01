@@ -4,6 +4,8 @@ Script para poblar la base de datos con FAQs de Ithaka
 Uso: python scripts/populate_faqs.py
 """
 
+from app.db.config.database import get_async_session
+from app.services.embedding_service import embedding_service
 import sys
 import asyncio
 from pathlib import Path
@@ -12,17 +14,13 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from app.services.embedding_service import embedding_service
-from app.db.config.database import get_async_session
-from app.db.models import FAQEmbedding
-
 
 async def populate_faqs():
     """Pobla la base de datos con FAQs de Ithaka"""
-    
+
     print("📚 Poblando base de datos con FAQs de Ithaka...")
     print("=" * 50)
-    
+
     # FAQs data
     FAQS_DATA = [
         # Cursos y capacitaciones
@@ -34,7 +32,7 @@ async def populate_faqs():
             "question": "cursos de emprendimiento capacitaciones ithaka formacion",
             "answer": "En Ithaka ofrecemos múltiples cursos y capacitaciones en emprendimiento e innovación. Tenemos cursos electivos para estudiantes UCU, el minor de innovación y emprendimiento, y capacitaciones abiertas para la comunidad. Todos nuestros cursos son gratuitos para la comunidad UCU. Más información: https://bit.ly/ElectivasIthaka"
         },
-        
+
         # Programa Fellows - múltiples variaciones
         {
             "question": "¿Qué es el programa Fellows?",
@@ -48,7 +46,7 @@ async def populate_faqs():
             "question": "¿Cuándo es la convocatoria para el programa Fellows?",
             "answer": "Durante marzo-abril se lanza la convocatoria para postulantes al programa, y luego de un proceso de selección de aprox. 1 mes con entrevistas grupales e individuales, se seleccionan 4 participantes."
         },
-        
+
         # Freelancer y emprendimiento profesional
         {
             "question": "¿Quiero emprender como freelancer, cómo hago?",
@@ -58,7 +56,7 @@ async def populate_faqs():
             "question": "freelance independiente marca personal profesion emprender trabajo",
             "answer": "Para emprender como freelancer necesitas desarrollar tu marca personal y habilidades específicas. En Ithaka te ayudamos con cursos sobre emprendimiento profesional, desarrollo de marca personal, y herramientas para el trabajo independiente. Nuestros mentores tienen experiencia en diferentes industrias."
         },
-        
+
         # Información general de Ithaka
         {
             "question": "¿El Centro Ithaka es exclusivo para estudiantes y egresados UCU?",
@@ -68,7 +66,7 @@ async def populate_faqs():
             "question": "que es ithaka centro emprendimiento ucu que hacen servicios",
             "answer": "Ithaka es el centro de emprendimiento e innovación de la Universidad Católica del Uruguay. Ofrecemos programas educativos, incubadora de startups, mentorías, y capacitaciones para desarrollar el espíritu emprendedor. Estamos abiertos tanto a la comunidad UCU como a emprendedores externos."
         },
-        
+
         # Costos y accesibilidad
         {
             "question": "¿Cuánto cuestan los cursos y actividades de Ithaka?",
@@ -78,7 +76,7 @@ async def populate_faqs():
             "question": "costo precio gratis gratuito pagar actividades cursos mentoria",
             "answer": "¡Todo es gratuito! En Ithaka creemos que el emprendimiento debe ser accesible. Nuestros cursos, mentorías, programas y actividades de incubadora no tienen costo. Solo necesitas ganas de aprender y emprender. Para estudiantes UCU solo se requieren créditos disponibles para cursos electivos."
         },
-        
+
         # Convocatorias y novedades
         {
             "question": "¿Cómo me entero de las convocatorias y novedades de Ithaka?",
@@ -88,7 +86,7 @@ async def populate_faqs():
             "question": "noticias convocatorias eventos novedades informacion contacto redes",
             "answer": "Para estar al día con Ithaka, síguenos en Instagram, Twitter y LinkedIn. También tenemos un newsletter donde enviamos todas las oportunidades, convocatorias y eventos. Así no te pierdes ninguna oportunidad de crecimiento emprendedor."
         },
-        
+
         # Minor de emprendimiento
         {
             "question": "¿Qué ofrece el minor de emprendimiento?",
@@ -98,7 +96,8 @@ async def populate_faqs():
 
     async for session in get_async_session():
         for i, faq_data in enumerate(FAQS_DATA, 1):
-            print(f"📝 Procesando FAQ {i}/{len(FAQS_DATA)}: {faq_data['question'][:50]}...")
+            print(
+                f"📝 Procesando FAQ {i}/{len(FAQS_DATA)}: {faq_data['question'][:50]}...")
 
             try:
                 # Crear embedding y guardar FAQ

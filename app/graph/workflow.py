@@ -3,10 +3,9 @@ Workflow principal de LangGraph para orquestar todos los agentes del sistema Ith
 """
 
 from datetime import datetime
-from typing import Dict, Any
 from langgraph.graph import StateGraph, END
 from .state import ConversationState
-from ..agents.supervisor import route_message, decide_next_agent
+from ..agents.supervisor import route_message, decide_next_agent_wrapper
 # TODO: Integrar wizard agent cuando esté disponible
 # from ..agents.wizard import handle_wizard_flow
 from ..agents.faq import handle_faq_query
@@ -43,7 +42,7 @@ class IthakaWorkflow:
         # Agregar bordes condicionales desde el supervisor
         workflow.add_conditional_edges(
             "supervisor",
-            decide_next_agent,
+            decide_next_agent_wrapper,
             {
                 # TODO: Agregar wizard cuando esté disponible
                 # "wizard": "wizard",
@@ -64,38 +63,50 @@ class IthakaWorkflow:
         # Compilar el grafo
         return workflow.compile()
 
+    def _create_initial_state(
+        self,
+        user_message: str,
+        conversation_id: int = None,
+        chat_history: list = None,
+        user_email: str = None
+    ) -> ConversationState:
+        """Crea el estado inicial para el workflow"""
+        return {
+            "conversation_id": conversation_id,
+            "user_message": user_message,
+            "chat_history": chat_history or [],
+            "user_email": user_email,
+            "user_name": None,
+            "current_agent": "supervisor",
+            "agent_context": {},
+            "wizard_session_id": None,
+            "current_question": 1,
+            "wizard_responses": {},
+            "wizard_state": "INACTIVE",
+            "supervisor_decision": None,
+            "faq_results": None,
+            "validation_results": None,
+            "next_action": "process",
+            "should_continue": True,
+            "human_feedback_needed": False,
+            "timestamp": datetime.now(),
+            "session_data": {}
+        }
+
     async def process_message(
         self,
         user_message: str,
         conversation_id: int = None,
         chat_history: list = None,
         user_email: str = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Procesa un mensaje del usuario a través del grafo de agentes"""
 
         try:
             # Crear estado inicial como diccionario
-            initial_state = {
-                "conversation_id": conversation_id,
-                "user_message": user_message,
-                "chat_history": chat_history or [],
-                "user_email": user_email,
-                "user_name": None,
-                "current_agent": "supervisor",
-                "agent_context": {},
-                "wizard_session_id": None,
-                "current_question": 1,
-                "wizard_responses": {},
-                "wizard_state": "INACTIVE",
-                "supervisor_decision": None,
-                "faq_results": None,
-                "validation_results": None,
-                "next_action": "process",
-                "should_continue": True,
-                "human_feedback_needed": False,
-                "timestamp": datetime.now(),
-                "session_data": {}
-            }
+            initial_state = self._create_initial_state(
+                user_message, conversation_id, chat_history, user_email
+            )
 
             # Ejecutar el grafo
             logger.info(f"Processing message: {user_message[:50]}...")
@@ -150,7 +161,7 @@ async def process_user_message(
     conversation_id: int = None,
     chat_history: list = None,
     user_email: str = None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Función de conveniencia para procesar mensajes de usuario"""
     return await ithaka_workflow.process_message(
         user_message=user_message,

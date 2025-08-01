@@ -2,8 +2,7 @@
 Servicio de chat actualizado para integrar con el sistema de agentes LangGraph
 """
 
-import asyncio
-from typing import Dict, Any, List, Optional
+from typing import Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from ..db.config.database import get_async_session
@@ -20,12 +19,24 @@ class ChatService:
     def __init__(self):
         pass
 
+    async def _with_session(self, operation):
+        """Helper method to handle session acquisition pattern"""
+        async for session in get_async_session():
+            try:
+                result = await operation(session)
+                return result
+            except Exception as e:
+                await session.rollback()
+                raise
+            finally:
+                break
+
     async def process_message(
         self,
         user_message: str,
         user_email: str = None,
         conversation_id: int = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Procesa un mensaje del usuario usando el sistema de agentes"""
 
         try:
@@ -90,58 +101,60 @@ class ChatService:
     async def _get_or_create_conversation(self, user_email: str) -> int:
         """Obtiene conversación existente o crea una nueva"""
 
-        try:
-            async for session in get_async_session():
-                # Buscar conversación existente por email
-                stmt = select(Conversation).where(
-                    Conversation.email == user_email)
-                result = await session.execute(stmt)
-                existing_conversation = result.scalar_one_or_none()
+        async def operation(session):
+            # Buscar conversación existente por email
+            stmt = select(Conversation).where(
+                Conversation.email == user_email)
+            result = await session.execute(stmt)
+            existing_conversation = result.scalar_one_or_none()
 
-                if existing_conversation:
-                    logger.info(
-                        f"Found existing conversation {existing_conversation.id} for {user_email}")
-                    return existing_conversation.id
-
-                # Crear nueva conversación
-                new_conversation = Conversation(email=user_email)
-                session.add(new_conversation)
-                await session.commit()
-                await session.refresh(new_conversation)
-
+            if existing_conversation:
                 logger.info(
-                    f"Created new conversation {new_conversation.id} for {user_email}")
-                return new_conversation.id
+                    f"Found existing conversation {existing_conversation.id} for {user_email}")
+                return existing_conversation.id
 
+            # Crear nueva conversación
+            new_conversation = Conversation(email=user_email)
+            session.add(new_conversation)
+            await session.commit()
+            await session.refresh(new_conversation)
+
+            logger.info(
+                f"Created new conversation {new_conversation.id} for {user_email}")
+            return new_conversation.id
+
+        try:
+            return await self._with_session(operation)
         except Exception as e:
             logger.error(f"Error managing conversation: {e}")
             raise
 
-    async def _get_chat_history(self, conversation_id: int, limit: int = 10) -> List[Dict[str, str]]:
+    async def _get_chat_history(self, conversation_id: int, limit: int = 10) -> list[dict[str, str]]:
         """Obtiene historial reciente de la conversación"""
 
+        async def operation(session):
+            stmt = select(Message).where(
+                Message.conv_id == conversation_id
+            ).order_by(
+                Message.ts.desc()
+            ).limit(limit)
+
+            result = await session.execute(stmt)
+            messages = result.scalars().all()
+
+            # Convertir a formato de historial (más reciente primero, luego revertir)
+            history = []
+            for message in reversed(messages):
+                history.append({
+                    "role": message.role,
+                    "content": message.content,
+                    "timestamp": message.ts.isoformat()
+                })
+
+            return history
+
         try:
-            async for session in get_async_session():
-                stmt = select(Message).where(
-                    Message.conv_id == conversation_id
-                ).order_by(
-                    Message.ts.desc()
-                ).limit(limit)
-
-                result = await session.execute(stmt)
-                messages = result.scalars().all()
-
-                # Convertir a formato de historial (más reciente primero, luego revertir)
-                history = []
-                for message in reversed(messages):
-                    history.append({
-                        "role": message.role,
-                        "content": message.content,
-                        "timestamp": message.ts.isoformat()
-                    })
-
-                return history
-
+            return await self._with_session(operation)
         except Exception as e:
             logger.error(f"Error getting chat history: {e}")
             return []
@@ -154,28 +167,29 @@ class ChatService:
     ):
         """Guarda mensajes del usuario y bot en la base de datos"""
 
+        async def operation(session):
+            # Mensaje del usuario
+            user_msg = Message(
+                conv_id=conversation_id,
+                role="user",
+                content=user_message
+            )
+            session.add(user_msg)
+
+            # Respuesta del bot
+            bot_msg = Message(
+                conv_id=conversation_id,
+                role="assistant",
+                content=bot_response
+            )
+            session.add(bot_msg)
+
+            await session.commit()
+            logger.info(
+                f"Saved messages for conversation {conversation_id}")
+
         try:
-            async for session in get_async_session():
-                # Mensaje del usuario
-                user_msg = Message(
-                    conv_id=conversation_id,
-                    role="user",
-                    content=user_message
-                )
-                session.add(user_msg)
-
-                # Respuesta del bot
-                bot_msg = Message(
-                    conv_id=conversation_id,
-                    role="assistant",
-                    content=bot_response
-                )
-                session.add(bot_msg)
-
-                await session.commit()
-                logger.info(
-                    f"Saved messages for conversation {conversation_id}")
-
+            await self._with_session(operation)
         except Exception as e:
             logger.error(f"Error saving messages: {e}")
             # No re-lanzar el error para no interrumpir el flujo principal
@@ -183,42 +197,44 @@ class ChatService:
     async def _update_conversation_email(self, conversation_id: int, email: str):
         """Actualiza el email de una conversación si no lo tenía"""
 
+        async def operation(session):
+            stmt = select(Conversation).where(
+                Conversation.id == conversation_id)
+            result = await session.execute(stmt)
+            conversation = result.scalar_one_or_none()
+
+            if conversation and not conversation.email:
+                conversation.email = email
+                await session.commit()
+                logger.info(
+                    f"Updated email for conversation {conversation_id}")
+
         try:
-            async for session in get_async_session():
-                stmt = select(Conversation).where(
-                    Conversation.id == conversation_id)
-                result = await session.execute(stmt)
-                conversation = result.scalar_one_or_none()
-
-                if conversation and not conversation.email:
-                    conversation.email = email
-                    await session.commit()
-                    logger.info(
-                        f"Updated email for conversation {conversation_id}")
-
+            await self._with_session(operation)
         except Exception as e:
             logger.error(f"Error updating conversation email: {e}")
 
-    async def get_conversation_info(self, conversation_id: int) -> Optional[Dict[str, Any]]:
+    async def get_conversation_info(self, conversation_id: int) -> Optional[dict[str, Any]]:
         """Obtiene información de una conversación"""
 
+        async def operation(session):
+            stmt = select(Conversation).where(
+                Conversation.id == conversation_id)
+            result = await session.execute(stmt)
+            conversation = result.scalar_one_or_none()
+
+            if conversation:
+                return {
+                    "id": conversation.id,
+                    "email": conversation.email,
+                    "started_at": conversation.started_at.isoformat(),
+                    "message_count": len(conversation.messages) if conversation.messages else 0
+                }
+
+            return None
+
         try:
-            async for session in get_async_session():
-                stmt = select(Conversation).where(
-                    Conversation.id == conversation_id)
-                result = await session.execute(stmt)
-                conversation = result.scalar_one_or_none()
-
-                if conversation:
-                    return {
-                        "id": conversation.id,
-                        "email": conversation.email,
-                        "started_at": conversation.started_at.isoformat(),
-                        "message_count": len(conversation.messages) if conversation.messages else 0
-                    }
-
-                return None
-
+            return await self._with_session(operation)
         except Exception as e:
             logger.error(f"Error getting conversation info: {e}")
             return None
@@ -226,21 +242,22 @@ class ChatService:
     async def _create_temporary_conversation(self) -> int:
         """Crea una conversación temporal para preguntas FAQ sin email"""
 
+        async def operation(session):
+            # Crear conversación temporal sin email
+            new_conversation = Conversation(
+                email=None,  # Sin email para conversaciones temporales
+            )
+
+            session.add(new_conversation)
+            await session.commit()
+            await session.refresh(new_conversation)
+
+            logger.info(
+                f"Created temporary conversation {new_conversation.id}")
+            return new_conversation.id
+
         try:
-            async for session in get_async_session():
-                # Crear conversación temporal sin email
-                new_conversation = Conversation(
-                    email=None,  # Sin email para conversaciones temporales
-                )
-
-                session.add(new_conversation)
-                await session.commit()
-                await session.refresh(new_conversation)
-
-                logger.info(
-                    f"Created temporary conversation {new_conversation.id}")
-                return new_conversation.id
-
+            return await self._with_session(operation)
         except Exception as e:
             logger.error(f"Error creating temporary conversation: {e}")
             # Si falla, devolver un ID temporal negativo para indicar que es temporal

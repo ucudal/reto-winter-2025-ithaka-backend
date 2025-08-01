@@ -17,10 +17,15 @@ class FAQAgent:
     """Agente para responder preguntas frecuentes usando base vectorial"""
 
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is required")
+
+        self.client = AsyncOpenAI(api_key=api_key)
         self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         self.max_results = int(os.getenv("MAX_FAQ_RESULTS", "5"))
-        self.similarity_threshold = 0.4  # Más permisivo para captar variaciones
+        self.similarity_threshold = float(
+            os.getenv("SIMILARITY_THRESHOLD", "0.4"))
 
     async def handle_faq_query(self, state: ConversationState) -> ConversationState:
         """Procesa una consulta FAQ del usuario"""

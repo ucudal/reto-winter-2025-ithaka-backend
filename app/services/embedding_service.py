@@ -1,5 +1,4 @@
 import os
-import asyncio
 from typing import List, Optional
 import numpy as np
 from openai import AsyncOpenAI
