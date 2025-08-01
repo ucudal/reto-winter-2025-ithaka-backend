@@ -25,10 +25,10 @@ class SupervisorAgent:
         chat_history = state.get("chat_history", [])
         # conversation_id = state.get("conversation_id") # TODO: Agregar cuando esté disponible
 
-        # TODO: Verificar sesiones activas del wizard cuando esté disponible
-        # if state.get("wizard_session_id") and state.get("wizard_state") == "ACTIVE":
-        #     logger.info("Routing to wizard - active session detected in state")
-        #     return self._route_to_wizard(state)
+        # Verificar sesiones activas del wizard
+        if state.get("wizard_session_id") and state.get("wizard_state") == "ACTIVE":
+            logger.info("Routing to wizard - active session detected in state")
+            return self._route_to_wizard(state)
 
         # TODO: Verificar sesiones en BD cuando wizard esté disponible
         # if conversation_id:
@@ -60,12 +60,12 @@ class SupervisorAgent:
     def _analyze_intention_simple(self, message: str) -> str:
         """Análisis simple de intención basado en palabras clave"""
 
-        # TODO: Patrones para wizard cuando esté disponible
-        # wizard_keywords = [
-        #     "postular", "emprender", "formulario", "idea", "negocio",
-        #     "startup", "proyecto", "emprendimiento", "incubadora",
-        #     "quiero postular", "tengo una idea"
-        # ]
+        # Patrones para wizard
+        wizard_keywords = [
+            "postular", "emprender", "formulario", "idea", "negocio",
+            "startup", "proyecto", "emprendimiento", "incubadora",
+            "quiero postular", "tengo una idea", "aplicar", "inscribir"
+        ]
 
         # Patrones para FAQ
         faq_keywords = [
@@ -74,16 +74,16 @@ class SupervisorAgent:
             "actividades", "contacto", "campus", "costo"
         ]
 
-        # TODO: Comandos del wizard cuando esté disponible
-        # wizard_commands = ["volver", "cancelar", "continuar", "siguiente"]
+        # Comandos del wizard
+        wizard_commands = ["volver", "cancelar", "continuar", "siguiente", "atras", "guardar"]
 
-        # TODO: Verificar comandos del wizard cuando esté disponible
-        # if any(cmd in message for cmd in wizard_commands):
-        #     return "wizard"
+        # Verificar comandos del wizard
+        if any(cmd in message for cmd in wizard_commands):
+            return "wizard"
 
-        # TODO: Verificar patrones de postulación cuando wizard esté disponible
-        # if any(keyword in message for keyword in wizard_keywords):
-        #     return "wizard"
+        # Verificar patrones de postulación
+        if any(keyword in message for keyword in wizard_keywords):
+            return "wizard"
 
         # Verificar patrones de FAQ
         if any(keyword in message for keyword in faq_keywords):
@@ -141,8 +141,7 @@ Responde ÚNICAMENTE con una palabra: faq
             intention = response.choices[0].message.content.strip().lower()
 
             # Validar respuesta
-            # TODO: Agregar "validator" y "wizard" cuando estén disponibles
-            if intention in ["faq"]:
+            if intention in ["faq", "wizard"]:
                 return intention
             else:
                 logger.warning(f"Invalid AI intention response: {intention}")
@@ -152,12 +151,11 @@ Responde ÚNICAMENTE con una palabra: faq
             logger.error(f"Error in AI intention analysis: {e}")
             return "faq"  # Safe fallback
 
-    # TODO: Implementar cuando wizard esté disponible
-    # def _route_to_wizard(self, state: ConversationState) -> ConversationState:
-    #     """Rutea específicamente al wizard"""
-    #     state["supervisor_decision"] = "wizard"
-    #     state["current_agent"] = "wizard"
-    #     return state
+    def _route_to_wizard(self, state: ConversationState) -> ConversationState:
+        """Rutea específicamente al wizard"""
+        state["supervisor_decision"] = "wizard"
+        state["current_agent"] = "wizard"
+        return state
 
     # TODO: Implementar cuando wizard esté disponible
     # async def _check_active_wizard_session(self, conversation_id: int) -> Optional[Dict[str, Any]]:
@@ -190,8 +188,7 @@ Responde ÚNICAMENTE con una palabra: faq
         supervisor_decision = state.get("supervisor_decision")
 
         # Si hay decisión del supervisor, seguir esa ruta
-        # TODO: Agregar "validator" y "wizard" cuando estén disponibles
-        if supervisor_decision in ["faq"]:
+        if supervisor_decision in ["faq", "wizard"]:
             return supervisor_decision
 
         # Si no hay decisión clara, ir a FAQ como default

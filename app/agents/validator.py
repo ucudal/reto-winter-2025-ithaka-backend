@@ -70,6 +70,7 @@ class ValidatorAgent:
             state["should_continue"] = not validation_result["is_valid"]
 
         except Exception as e:
+            raise e
             logger.error(f"Error in validation: {e}")
             state["validation_results"] = {
                 "is_valid": False,
@@ -110,6 +111,7 @@ class ValidatorAgent:
                 return {"is_valid": False, "error": f"Tipo de validación desconocido: {validation_type}"}
 
         except Exception as e:
+            raise e
             return {"is_valid": False, "error": str(e)}
 
     def _validate_email(self, email: str) -> Dict[str, Any]:

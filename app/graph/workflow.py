@@ -7,8 +7,7 @@ from typing import Dict, Any
 from langgraph.graph import StateGraph, END
 from .state import ConversationState
 from ..agents.supervisor import route_message, decide_next_agent
-# TODO: Integrar wizard agent cuando esté disponible
-# from ..agents.wizard import handle_wizard_flow
+from ..agents.wizard import handle_wizard_flow
 from ..agents.faq import handle_faq_query
 # TODO: Integrar validator cuando esté disponible
 # from ..agents.validator import validate_data
@@ -31,8 +30,7 @@ class IthakaWorkflow:
 
         # Agregar nodos (agentes)
         workflow.add_node("supervisor", route_message)
-        # TODO: Agregar wizard node cuando esté disponible
-        # workflow.add_node("wizard", handle_wizard_flow)
+        workflow.add_node("wizard", handle_wizard_flow)
         workflow.add_node("faq", handle_faq_query)
         # TODO: Agregar validator node cuando esté disponible
         # workflow.add_node("validator", validate_data)
@@ -45,8 +43,7 @@ class IthakaWorkflow:
             "supervisor",
             decide_next_agent,
             {
-                # TODO: Agregar wizard cuando esté disponible
-                # "wizard": "wizard",
+                "wizard": "wizard",
                 "faq": "faq",
                 # TODO: Agregar validator cuando esté disponible
                 # "validator": "validator",
@@ -54,15 +51,39 @@ class IthakaWorkflow:
             }
         )
 
+        # El wizard puede continuar consigo mismo o terminar
+        workflow.add_conditional_edges(
+            "wizard",
+            self._wizard_should_continue,
+            {
+                "continue": "wizard",
+                "end": END
+            }
+        )
+
         # Los otros agentes terminan el flujo
-        # TODO: Agregar wizard edge cuando esté disponible
-        # workflow.add_edge("wizard", END)
         workflow.add_edge("faq", END)
         # TODO: Agregar validator edge cuando esté disponible
         # workflow.add_edge("validator", END)
 
         # Compilar el grafo
         return workflow.compile()
+
+    def _wizard_should_continue(self, state: ConversationState) -> str:
+        """Determina si el wizard debe continuar o terminar"""
+        wizard_state = state.get("wizard_state", "INACTIVE")
+        next_action = state.get("next_action", "complete")
+        
+        # Si el wizard está activo y necesita continuar, mantener el flujo
+        if wizard_state == "ACTIVE" and next_action == "send_response":
+            return "continue"
+        
+        # Si está completado o hay error, terminar
+        if wizard_state in ["COMPLETED", "ERROR"]:
+            return "end"
+        
+        # Si no hay decisión clara, terminar
+        return "end"
 
     async def process_message(
         self,
@@ -110,6 +131,7 @@ class IthakaWorkflow:
                 "wizard_state": result.get("wizard_state", "INACTIVE"),
                 "current_question": result.get("current_question"),
                 "human_feedback_needed": result.get("human_feedback_needed", False),
+                "human_validation_needed": result.get("human_validation_needed", False),
                 "should_continue": result.get("should_continue", False),
                 "next_action": result.get("next_action", "complete"),
                 "faq_results": result.get("faq_results"),
@@ -122,6 +144,7 @@ class IthakaWorkflow:
             return response_data
 
         except Exception as e:
+            raise e
             logger.error(f"Error processing message through workflow: {e}")
 
             # Respuesta de fallback

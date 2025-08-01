@@ -70,6 +70,7 @@ class ChatService:
                 "wizard_state": result.get("wizard_state", "INACTIVE"),
                 "current_question": result.get("current_question"),
                 "human_feedback_needed": result.get("human_feedback_needed", False),
+                "human_validation_needed": result.get("human_validation_needed", False),
                 "metadata": {
                     "next_action": result.get("next_action"),
                     "faq_results": result.get("faq_results"),
@@ -78,6 +79,7 @@ class ChatService:
             }
 
         except Exception as e:
+            raise e
             logger.error(f"Error in chat service: {e}")
             return {
                 "success": False,
@@ -114,6 +116,7 @@ class ChatService:
                 return new_conversation.id
 
         except Exception as e:
+            raise e
             logger.error(f"Error managing conversation: {e}")
             raise
 
@@ -143,6 +146,7 @@ class ChatService:
                 return history
 
         except Exception as e:
+            raise e
             logger.error(f"Error getting chat history: {e}")
             return []
 
@@ -177,6 +181,7 @@ class ChatService:
                     f"Saved messages for conversation {conversation_id}")
 
         except Exception as e:
+            raise e
             logger.error(f"Error saving messages: {e}")
             # No re-lanzar el error para no interrumpir el flujo principal
 
@@ -197,6 +202,7 @@ class ChatService:
                         f"Updated email for conversation {conversation_id}")
 
         except Exception as e:
+            raise e
             logger.error(f"Error updating conversation email: {e}")
 
     async def get_conversation_info(self, conversation_id: int) -> Optional[Dict[str, Any]]:
@@ -220,6 +226,7 @@ class ChatService:
                 return None
 
         except Exception as e:
+            raise e
             logger.error(f"Error getting conversation info: {e}")
             return None
 
@@ -242,6 +249,7 @@ class ChatService:
                 return new_conversation.id
 
         except Exception as e:
+            raise e
             logger.error(f"Error creating temporary conversation: {e}")
             # Si falla, devolver un ID temporal negativo para indicar que es temporal
             return -1
