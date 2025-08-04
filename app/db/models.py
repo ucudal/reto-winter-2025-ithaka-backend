@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Float, Integer, String, DateTime, ForeignKey, JSON, func
 from sqlalchemy.orm import relationship
+
 from .config.database import Base
+
 
 class Conversation(Base):
     __tablename__ = "conversations"

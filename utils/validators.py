@@ -1,5 +1,6 @@
 import re
 
+
 class ValidationError(Exception):
     """Excepción base para errores de validación."""
     pass
