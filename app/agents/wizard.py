@@ -1,5 +1,5 @@
 """
-Agente Wizard - Maneja formularios interactivos para postulación de proyectos
+Agente Wizard - Maneja formularios interactivos para postulación de proyectos de Ithaka
 """
 
 import os
@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional, List
 from openai import AsyncOpenAI
 from ..graph.state import ConversationState
 from .validation_agent import ValidationAgent
+from ..config.questions import get_question, is_conditional_question, should_continue_after_question_11
 import logging
 import json
 from copilotkit import CopilotKitState
@@ -14,107 +15,128 @@ from copilotkit import CopilotKitState
 logger = logging.getLogger(__name__)
 
 class WizardAgent:
-    """Agente para manejar formularios interactivos de postulación"""
 
+    #Inicializa el cliente de OpenAI y carga la configuración de preguntas
     def __init__(self):
         self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         self.validation = ValidationAgent()
         self._initialize_nodes()
     
+    #Crea la estructura de nodos del formulario basado en questions.py
     def _initialize_nodes(self):
-        """Inicializa los nodos del formulario usando TypedDict"""
         self.nodes: Dict[str, Dict[str, Any]] = {
             "welcome": {
                 "node_id": "welcome",
-                "node_type": "welcome",
-                "content": "¡Bienvenido al formulario de postulación de Ithaka!\n\nTe guiaré paso a paso para completar tu postulación.",
-                "next": "full_name",
+                "node_type": "welcome_question",
+                "content": "¿Quieres postular una idea/proyecto o empezar a desarrollar tu espíritu emprendedor?",
+                "example": "Responde SI o NO",
+                "validation": "Extrae si el usuario quiere continuar (SI/NO).",
+                "error_msg": "Por favor responde SI o NO.",
+                "next": "question_1",
                 "prev": None,
-                "id": None,
-                "example": None,
-                "validation": None,
-                "error_msg": None,
-                "options": None,
-                "required": False
-            },
-            "full_name": {
-                "node_id": "full_name",
-                "node_type": "question",
-                "content": "1. Por favor ingresa tu nombre completo",
-                "example": "Ejemplo: Juan Pérez o Pérez, Juan",
-                "validation": "Extrae el nombre en formato 'Apellido, Nombre'.",
-                "error_msg": "No pude identificar tu nombre completo. Por favor usa: Apellido, Nombre",
-                "next": "email",
-                "prev": "welcome",
-                "id": "full_name",
-                "options": None,
-                "required": True
-            },
-            "email": {
-                "node_id": "email",
-                "node_type": "question",
-                "content": "2. Ingresa tu correo electrónico",
-                "example": "Ejemplo: juan@ejemplo.com",
-                "validation": "Extrae la dirección de correo electrónico válida.",
-                "error_msg": "Correo electrónico inválido. Por favor ingresa un correo válido.",
-                "next": "location",
-                "prev": "full_name",
-                "id": "email",
-                "options": None,
-                "required": True
-            },
-            "location": {
-                "node_id": "location",
-                "node_type": "multiple_choice",
-                "content": "3. Selecciona tu país y localidad de residencia",
+                "id": "welcome_response",
                 "options": [
-                    {"value": "montevideo", "label": "Uruguay - Montevideo"},
-                    {"value": "interior", "label": "Uruguay - Interior"},
-                    {"value": "otro", "label": "Otro país"}
+                    {"value": "si", "label": "SI"},
+                    {"value": "no", "label": "NO"}
                 ],
-                "error_msg": "Por favor selecciona una opción válida.",
-                "next": "support_needed",
-                "prev": "email",
-                "id": "location",
-                "example": None,
-                "validation": None,
                 "required": True
-            },
-            "support_needed": {
-                "node_id": "support_needed",
-                "node_type": "multiselect",
-                "content": "4. Indica cuál de estos apoyos necesitas de Ithaka (Puedes seleccionar varios)",
-                "options": [
-                    {"value": "tutoria", "label": "Tutoría para validar la idea"},
-                    {"value": "plan_negocios", "label": "Soporte para armar el plan de negocios"},
-                    {"value": "financiamiento", "label": "Ayuda para obtener financiamiento"},
-                    {"value": "capacitacion", "label": "Capacitación"},
-                    {"value": "tema_especifico", "label": "Ayuda para un tema específico"},
-                    {"value": "otro", "label": "Otro"}
-                ],
-                "error_msg": "Por favor selecciona al menos una opción.",
-                "next": "completion",
-                "prev": "location",
-                "id": "support_needed",
-                "example": None,
-                "validation": None,
-                "required": True
-            },
-            "completion": {
-                "node_id": "completion",
-                "node_type": "completion",
-                "content": "¡Gracias por completar el formulario! Hemos recibido tus respuestas.",
-                "next": None,
-                "prev": "support_needed",
-                "id": None,
-                "example": None,
-                "validation": None,
-                "error_msg": None,
-                "options": None,
-                "required": False
             }
         }
+        
+        # Agregar nodos basados en  questions.py
+        for question_num in range(1, 21):  # Preguntas 1-20
+            question_config = get_question(question_num)
+            if question_config:
+                node_id = f"question_{question_num}"
+                prev_node = f"question_{question_num - 1}" if question_num > 1 else "welcome"
+                next_node = f"question_{question_num + 1}" if question_num < 20 else "completion"
+                
+                # Determinar el tipo de nodo basado en la configuración
+                node_type = self._get_node_type_from_config(question_config)
+                
+                # Crear el nodo
+                self.nodes[node_id] = {
+                    "node_id": node_id,
+                    "node_type": node_type,
+                    "content": question_config.get("text", ""),
+                    "example": self._get_example_from_config(question_config),
+                    "validation": question_config.get("validation", ""),
+                    "error_msg": self._get_error_msg_from_config(question_config),
+                    "next": next_node,
+                    "prev": prev_node,
+                    "id": question_config.get("field_name", f"field_{question_num}"),
+                    "options": self._get_options_from_config(question_config),
+                    "required": question_config.get("required", True),
+                    "question_config": question_config  # Guardar la configuración completa
+                }
+        
+        # Nodo de completación
+        self.nodes["completion"] = {
+            "node_id": "completion",
+            "node_type": "completion",
+            "content": "¡Muchas gracias por completar el formulario de Ithaka! Hemos recibido tus respuestas y te contactaremos a la brevedad.",
+            "next": None,
+            "prev": "question_20",
+            "id": None,
+            "example": None,
+            "validation": None,
+            "error_msg": None,
+            "options": None,
+            "required": False
+        }
+
+    def _get_node_type_from_config(self, question_config: Dict[str, Any]) -> str:
+        """Determina el tipo de nodo basado en la configuración"""
+        validation_type = question_config.get("validation", "")
+        options = question_config.get("options", [])
+        
+        if validation_type == "yes_no":
+            return "yes_no"
+        elif options:
+            if question_config.get("type") == "evaluative":
+                return "conditional_multiselect"
+            else:
+                return "multiple_choice"
+        else:
+            return "question"
+
+    def _get_example_from_config(self, question_config: Dict[str, Any]) -> Optional[str]:
+        validation_type = question_config.get("validation", "")
+        
+        examples = {
+            "name": "Ejemplo: Pérez, Juan",
+            "email": "Ejemplo: juan@ejemplo.com",
+            "phone": "Ejemplo: 099123456",
+            "ci": "Ejemplo: 12345678",
+            "text_min_length": "Cuéntanos más detalles...",
+            "rubrica": "Describe detalladamente..."
+        }
+        
+        return examples.get(validation_type, None)
+
+    def _get_error_msg_from_config(self, question_config: Dict[str, Any]) -> str:
+        """Obtiene el mensaje de error de la configuración"""
+        validation_type = question_config.get("validation", "")
+        
+        error_messages = {
+            "name": "No pude identificar tu nombre completo. Por favor usa: Apellido, Nombre",
+            "email": "Correo electrónico inválido. Por favor ingresa un correo válido.",
+            "phone": "Por favor ingresa un número de teléfono válido.",
+            "ci": "Por favor ingresa un número de documento válido.",
+            "text_min_length": "Por favor proporciona más detalles.",
+            "rubrica": "Por favor describe con más detalle."
+        }
+        
+        return error_messages.get(validation_type, "Por favor proporciona una respuesta válida.")
+
+    def _get_options_from_config(self, question_config: Dict[str, Any]) -> Optional[List[Dict[str, str]]]:
+        """Obtiene las opciones de la configuración"""
+        options = question_config.get("options", [])
+        if not options:
+            return None
+        
+        return [{"value": opt.lower().replace(" ", "_"), "label": opt} for opt in options]
 
     async def handle_wizard_flow(self, state: ConversationState) -> ConversationState:
         """Maneja el flujo del wizard en el contexto de LangGraph"""
@@ -125,8 +147,8 @@ class WizardAgent:
         wizard_responses = state.get("wizard_responses", {})
 
         try:
-            # Si es la primera vez, iniciar el wizard
-            if wizard_state == "INACTIVE":
+            # Si es la primera vez o si se envía "postular" para reiniciar
+            if wizard_state == "INACTIVE" or user_message.lower().strip() == "postular":
                 return await self._start_wizard(state)
             
             # Si ya está activo, procesar la respuesta
@@ -149,11 +171,11 @@ class WizardAgent:
         try:
             # Inicializar estado del wizard
             state["wizard_state"] = "ACTIVE"
-            state["current_question"] = 1
+            state["current_question"] = 1  # Empezar con el welcome
             state["wizard_responses"] = {}
             state["wizard_session_id"] = f"wizard_{state.get('conversation_id', 'new')}"
             
-            # Obtener primera pregunta
+            # Obtener nodo welcome
             current_node = self.nodes["welcome"]
             response = self._format_node_response(current_node)
             
@@ -195,8 +217,8 @@ class WizardAgent:
                 return await self._save_progress(state)
             
             # Procesar respuesta según tipo de nodo
-            if current_node["node_type"] == "welcome":
-                return await self._advance_to_next(state, current_node)
+            if current_node["node_type"] == "welcome_question":
+                return await self._process_welcome_question_response(state, current_node, user_message)
             
             elif current_node["node_type"] == "question":
                 result = await self._process_question_response(state, current_node, user_message)
@@ -204,7 +226,10 @@ class WizardAgent:
             elif current_node["node_type"] == "multiple_choice":
                 result = await self._process_multiple_choice_response(state, current_node, user_message)
             
-            elif current_node["node_type"] == "multiselect":
+            elif current_node["node_type"] == "yes_no":
+                result = await self._process_yes_no_response(state, current_node, user_message)
+            
+            elif current_node["node_type"] == "conditional_multiselect":
                 result = await self._process_multiselect_response(state, current_node, user_message)
             
             elif current_node["node_type"] == "completion":
@@ -244,44 +269,82 @@ class WizardAgent:
             logger.error(f"Error processing wizard response: {e}")
             return self._handle_wizard_error(state, str(e))
 
-    async def _handle_human_validation_response(self, state: ConversationState, user_response: str) -> ConversationState:
-        """Maneja la respuesta de validación humana"""
+    async def _process_welcome_question_response(self, state: ConversationState, node: Dict[str, Any], user_input: str) -> ConversationState:
+        """Procesa la respuesta de la pregunta de bienvenida (SI/NO)"""
         try:
-            pending_validation = state.get("pending_validation", "")
-            current_node_id = state.get("current_node")
-            current_node = self.nodes[current_node_id]
+            user_input_lower = user_input.lower().strip()
             
-            # Si el usuario confirma, usar la respuesta original
-            if user_response.lower() in ["sí", "si", "yes", "confirmar", "confirm", "ok", "correcto"]:
-                validated_result = pending_validation
+            if user_input_lower in ["si", "sí", "yes", "y"]:
+                validated = "si"
+            elif user_input_lower in ["no", "n"]:
+                validated = "no"
             else:
-                # Si el usuario corrige, validar la nueva entrada
-                validated_result = await self.validation.validate_question(user_response, current_node["validation"])
-                if validated_result == "HUMAN_VALIDATION_NEEDED":
-                    validated_result = user_response  # Usar la entrada del usuario directamente
+                # Error de validación
+                state["agent_context"] = {
+                    "response": "Por favor responde SI o NO.",
+                    "current_node": node["node_id"],
+                    "validation_error": True
+                }
+                state["next_action"] = "send_response"
+                state["should_continue"] = False
+                return state
             
-            # Guardar respuesta validada
+            # Guardar respuesta
             wizard_responses = state.get("wizard_responses", {})
-            wizard_responses[current_node["id"]] = validated_result
+            wizard_responses[node["id"]] = validated
             state["wizard_responses"] = wizard_responses
             
-            # Limpiar estado de validación humana
-            state["human_validation_needed"] = False
-            state["pending_validation"] = None
-            
-            # Avanzar al siguiente nodo
-            return await self._advance_to_next(state, current_node)
+            # Si el usuario responde "SI", continuar con el formulario
+            if validated == "si":
+                return await self._advance_to_next(state, node)
+            else:
+                # Si el usuario responde "NO", terminar el wizard
+                state["wizard_state"] = "COMPLETED"
+                state["agent_context"] = {
+                    "response": "Entendido. Si en el futuro quieres postular una idea o desarrollar tu espíritu emprendedor, no dudes en contactarnos. ¡Que tengas un excelente día!",
+                    "wizard_completed": True,
+                    "user_declined": True
+                }
+                state["next_action"] = "send_response"
+                state["should_continue"] = False
+                return state
             
         except Exception as e:
-            raise e
-            logger.error(f"Error handling human validation: {e}")
-            return self._handle_wizard_error(state, str(e))
+            logger.error(f"Error processing welcome question response: {e}")
+            return self._handle_wizard_error(state, node["error_msg"])
 
     async def _process_question_response(self, state: ConversationState, node: Dict[str, Any], user_input: str) -> Dict[str, Any]:
-        """Procesa respuesta de pregunta abierta"""
+        """Procesa respuesta de pregunta abierta usando la configuración"""
         try:
-            # Validar usando el agente de validación
-            validated = await self.validation.validate_question(user_input, node["validation"])
+            question_config = node.get("question_config", {})
+            validation_type = question_config.get("validation", "")
+            field_name = question_config.get("field_name", "")
+            
+            # Usar validación específica según el tipo de pregunta
+            validated = None
+            error_message = None
+            
+            # Validación específica por tipo de campo
+            if validation_type == "email":
+                validated, error_message = await self.validation.validate_email(user_input)
+            elif validation_type == "name":
+                validated, error_message = await self.validation.validate_name(user_input)
+            elif validation_type == "phone":
+                validated, error_message = await self.validation.validate_phone(user_input)
+            elif validation_type == "ci":
+                validated, error_message = await self.validation.validate_document_id(user_input)
+            elif validation_type == "text_min_length":
+                min_length = question_config.get("min_length", 10)
+                if len(user_input.strip()) >= min_length:
+                    validated = user_input
+                else:
+                    error_message = f"Por favor proporciona al menos {min_length} caracteres."
+            elif validation_type == "rubrica":
+                
+                validated, error_message = await self.validation.validate_question(user_input, question_config.get("text", ""))
+            else:
+                # Validación genérica
+                validated, error_message = await self.validation.validate_question(user_input, question_config.get("text", ""))
             
             # Si se necesita validación humana
             if validated == "HUMAN_VALIDATION_NEEDED":
@@ -290,20 +353,23 @@ class WizardAgent:
                     "message": f"Necesito validación humana para: '{user_input}'. Por favor confirma o corrige la información."
                 }
             
+            # Si hay error de validación
+            if error_message:
+                return {"error": error_message}
+            
             if not validated:
                 return {"error": node["error_msg"]}
             
             # Guardar respuesta validada
             wizard_responses = state.get("wizard_responses", {})
-            wizard_responses[node["id"]] = validated
+            wizard_responses[field_name] = validated
             state["wizard_responses"] = wizard_responses
             
             return {"status": "success"}
             
         except Exception as e:
-            raise e
             logger.error(f"Error validating question response: {e}")
-            return {"error": "Ocurrió un error al validar tu respuesta"}
+            return {"error": "Ocurrió un error al validar tu respuesta. Por favor intenta de nuevo."}
 
     async def _process_multiple_choice_response(self, state: ConversationState, node: Dict[str, Any], user_input: str) -> Dict[str, Any]:
         """Procesa respuesta de selección única"""
@@ -329,7 +395,8 @@ class WizardAgent:
             
             # Guardar respuesta
             wizard_responses = state.get("wizard_responses", {})
-            wizard_responses[node["id"]] = selected_option["value"]
+            field_name = node.get("question_config", {}).get("field_name", node["id"])
+            wizard_responses[field_name] = selected_option["value"]
             state["wizard_responses"] = wizard_responses
             
             return {"status": "success"}
@@ -337,6 +404,31 @@ class WizardAgent:
         except Exception as e:
             raise e
             logger.error(f"Error processing multiple choice: {e}")
+            return {"error": node["error_msg"]}
+
+    async def _process_yes_no_response(self, state: ConversationState, node: Dict[str, Any], user_input: str) -> Dict[str, Any]:
+        """Procesa respuesta SI/NO"""
+        try:
+            user_input_lower = user_input.lower().strip()
+            
+            if user_input_lower in ["si", "sí", "yes", "y"]:
+                validated = "si"
+            elif user_input_lower in ["no", "n"]:
+                validated = "no"
+            else:
+                return {"error": "Por favor responde SI o NO"}
+            
+            # Guardar respuesta
+            wizard_responses = state.get("wizard_responses", {})
+            field_name = node.get("question_config", {}).get("field_name", node["id"])
+            wizard_responses[field_name] = validated
+            state["wizard_responses"] = wizard_responses
+            
+            return {"status": "success"}
+            
+        except Exception as e:
+            raise e
+            logger.error(f"Error processing yes/no response: {e}")
             return {"error": node["error_msg"]}
 
     async def _process_multiselect_response(self, state: ConversationState, node: Dict[str, Any], user_input: str) -> Dict[str, Any]:
@@ -363,7 +455,8 @@ class WizardAgent:
             
             # Guardar respuesta
             wizard_responses = state.get("wizard_responses", {})
-            wizard_responses[node["id"]] = selected_values
+            field_name = node.get("question_config", {}).get("field_name", node["id"])
+            wizard_responses[field_name] = selected_values
             state["wizard_responses"] = wizard_responses
             
             return {"status": "success"}
@@ -374,7 +467,7 @@ class WizardAgent:
             return {"error": node["error_msg"]}
 
     async def _advance_to_next(self, state: ConversationState, current_node: Dict[str, Any]) -> ConversationState:
-        """Avanza al siguiente nodo"""
+        """Avanza al siguiente nodo usando la configuración centralizada"""
         if not current_node["next"]:
             return await self._complete_wizard(state)
         
@@ -384,6 +477,20 @@ class WizardAgent:
         
         # Obtener siguiente nodo
         next_node = self.nodes[current_node["next"]]
+        
+        # Verificar si el siguiente nodo es condicional y debe saltarse
+        if next_node.get("question_config"):
+            question_config = next_node["question_config"]
+            if not is_conditional_question(next_question, state.get("wizard_responses", {})):
+                # Saltar este nodo y continuar con el siguiente
+                return await self._advance_to_next(state, next_node)
+        
+        # Verificar si debemos continuar después de la pregunta 11
+        if next_question == 12 and not should_continue_after_question_11(state.get("wizard_responses", {})):
+            # Saltar a la pregunta 20 
+            state["current_question"] = 20
+            next_node = self.nodes["question_20"]
+        
         response = self._format_node_response(next_node)
         
         state["agent_context"] = {
@@ -484,17 +591,18 @@ class WizardAgent:
             responses_text = "\n".join([f"• {key}: {value}" for key, value in responses.items()])
             
             prompt = f"""
-Genera un resumen amigable y profesional de las respuestas del formulario de postulación:
+Genera un resumen amigable y profesional de las respuestas del formulario de postulación de Ithaka:
 
 RESPUESTAS RECIBIDAS:
 {responses_text}
 
 INSTRUCCIONES:
-1. Agradece por completar el formulario
+1. Agradece por completar el formulario de Ithaka
 2. Resume brevemente la información proporcionada
-3. Menciona los próximos pasos (contacto del equipo, revisión, etc.)
-4. Mantén un tono profesional pero amigable
-5. Incluye información de contacto si es relevante
+3. Menciona que el equipo de Ithaka revisará la información
+4. Indica que se contactarán a la brevedad
+5. Mantén un tono profesional pero amigable
+6. Incluye información de contacto si es relevante
 
 RESUMEN:
 """
@@ -515,9 +623,9 @@ RESUMEN:
             raise e
             logger.error(f"Error generating completion summary: {e}")
             return """
-¡Gracias por completar el formulario de postulación de Ithaka!
+¡Muchas gracias por completar el formulario de Ithaka!
 
-Hemos recibido tu información y nuestro equipo la revisará. Te contactaremos pronto con los próximos pasos.
+Hemos recibido tu información y nuestro equipo la revisará cuidadosamente. Te contactaremos a la brevedad para continuar con el proceso.
 
 Si tienes alguna pregunta, no dudes en contactarnos.
 
@@ -536,7 +644,7 @@ Si tienes alguna pregunta, no dudes en contactarnos.
             for i, option in enumerate(node["options"], 1):
                 response += f"\n{i}. {option['label']}"
         
-        if node["node_type"] == "multiselect":
+        if node["node_type"] == "conditional_multiselect":
             response += "\n\n(Puedes seleccionar múltiples opciones separadas por comas)"
         
         response += "\n\nComandos disponibles: 'atras', 'guardar', 'cancelar'"
@@ -545,15 +653,12 @@ Si tienes alguna pregunta, no dudes en contactarnos.
 
     def _get_node_id_by_question(self, question_number: int) -> str:
         """Obtiene el ID del nodo basado en el número de pregunta"""
-        node_mapping = {
-            1: "welcome",
-            2: "full_name", 
-            3: "email",
-            4: "location",
-            5: "support_needed",
-            6: "completion"
-        }
-        return node_mapping.get(question_number, "welcome")
+        if question_number == 1:
+            return "welcome"
+        elif question_number <= 20:
+            return f"question_{question_number}"
+        else:
+            return "completion"
 
     def _handle_wizard_error(self, state: ConversationState, error_message: str) -> ConversationState:
         """Maneja errores del wizard"""
@@ -581,6 +686,40 @@ Si tienes alguna pregunta, no dudes en contactarnos.
         state["should_continue"] = False
         
         return state
+
+    async def _handle_human_validation_response(self, state: ConversationState, user_response: str) -> ConversationState:
+        """Maneja la respuesta de validación humana"""
+        try:
+            pending_validation = state.get("pending_validation", "")
+            current_node_id = state.get("current_node")
+            current_node = self.nodes[current_node_id]
+            
+            # Si el usuario confirma, usar la respuesta original
+            if user_response.lower() in ["sí", "si", "yes", "confirmar", "confirm", "ok", "correcto"]:
+                validated_result = pending_validation
+            else:
+                # Si el usuario corrige, validar la nueva entrada
+                validated_result = await self.validation.validate_question(user_response, current_node["validation"])
+                if validated_result == "HUMAN_VALIDATION_NEEDED":
+                    validated_result = user_response  # Usar la entrada del usuario directamente
+            
+            # Guardar respuesta validada
+            wizard_responses = state.get("wizard_responses", {})
+            field_name = current_node.get("question_config", {}).get("field_name", current_node["id"])
+            wizard_responses[field_name] = validated_result
+            state["wizard_responses"] = wizard_responses
+            
+            # Limpiar estado de validación humana
+            state["human_validation_needed"] = False
+            state["pending_validation"] = None
+            
+            # Avanzar al siguiente nodo
+            return await self._advance_to_next(state, current_node)
+            
+        except Exception as e:
+            raise e
+            logger.error(f"Error handling human validation: {e}")
+            return self._handle_wizard_error(state, str(e))
 
 
 # Instancia global del agente

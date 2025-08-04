@@ -74,12 +74,13 @@ class IthakaWorkflow:
         wizard_state = state.get("wizard_state", "INACTIVE")
         next_action = state.get("next_action", "complete")
         
-        # Si el wizard está activo y necesita continuar, mantener el flujo
-        if wizard_state == "ACTIVE" and next_action == "send_response":
-            return "continue"
-        
         # Si está completado o hay error, terminar
         if wizard_state in ["COMPLETED", "ERROR"]:
+            return "end"
+        
+        # Si el wizard está activo y necesita enviar respuesta, terminar (no continuar)
+        # El wizard debe terminar después de procesar la respuesta del usuario
+        if wizard_state == "ACTIVE" and next_action == "send_response":
             return "end"
         
         # Si no hay decisión clara, terminar
@@ -90,11 +91,24 @@ class IthakaWorkflow:
         user_message: str,
         conversation_id: int = None,
         chat_history: list = None,
-        user_email: str = None
+        user_email: str = None,
+        wizard_state: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """Procesa un mensaje del usuario a través del grafo de agentes"""
 
         try:
+            # Usar el estado del wizard proporcionado o valores por defecto
+            wizard_session_id = None
+            current_question = 1
+            wizard_responses = {}
+            wizard_state_str = "INACTIVE"
+            
+            if wizard_state:
+                wizard_session_id = wizard_state.get("wizard_session_id")
+                wizard_state_str = wizard_state.get("wizard_state", "INACTIVE")
+                current_question = wizard_state.get("current_question", 1)
+                wizard_responses = wizard_state.get("wizard_responses", {})
+            
             # Crear estado inicial como diccionario
             initial_state = {
                 "conversation_id": conversation_id,
@@ -104,10 +118,10 @@ class IthakaWorkflow:
                 "user_name": None,
                 "current_agent": "supervisor",
                 "agent_context": {},
-                "wizard_session_id": None,
-                "current_question": 1,
-                "wizard_responses": {},
-                "wizard_state": "INACTIVE",
+                "wizard_session_id": wizard_session_id,
+                "current_question": current_question,
+                "wizard_responses": wizard_responses,
+                "wizard_state": wizard_state_str,
                 "supervisor_decision": None,
                 "faq_results": None,
                 "validation_results": None,
@@ -130,6 +144,7 @@ class IthakaWorkflow:
                 "wizard_session_id": result.get("wizard_session_id"),
                 "wizard_state": result.get("wizard_state", "INACTIVE"),
                 "current_question": result.get("current_question"),
+                "wizard_responses": result.get("wizard_responses", {}),
                 "human_feedback_needed": result.get("human_feedback_needed", False),
                 "human_validation_needed": result.get("human_validation_needed", False),
                 "should_continue": result.get("should_continue", False),
@@ -165,19 +180,19 @@ class IthakaWorkflow:
 # Instancia global del workflow
 ithaka_workflow = IthakaWorkflow()
 
-# Función de conveniencia para usar desde otros módulos
-
 
 async def process_user_message(
     user_message: str,
     conversation_id: int = None,
     chat_history: list = None,
-    user_email: str = None
+    user_email: str = None,
+    wizard_state: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     """Función de conveniencia para procesar mensajes de usuario"""
     return await ithaka_workflow.process_message(
         user_message=user_message,
         conversation_id=conversation_id,
         chat_history=chat_history,
-        user_email=user_email
+        user_email=user_email,
+        wizard_state=wizard_state
     )
