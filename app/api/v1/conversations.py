@@ -11,18 +11,21 @@ from app.db.models import Conversation
 
 router = APIRouter()
 
+
 class ConversationCreate(BaseModel):
     email: Optional[str] = None  # Opcional  
 
-class ConversationResponse(BaseModel):  
+
+class ConversationResponse(BaseModel):
     id: int
     email: Optional[str]
     started_at: datetime
 
+
 @router.post("/conversations", response_model=ConversationResponse)
 async def create_conversation(
-    conversation: ConversationCreate,
-    session: AsyncSession = Depends(get_async_session)
+        conversation: ConversationCreate,
+        session: AsyncSession = Depends(get_async_session)
 ) -> ConversationResponse:
     try:
         new_conv = Conversation(email=conversation.email)
@@ -38,9 +41,10 @@ async def create_conversation(
         await session.rollback()
         raise HTTPException(status_code=500, detail="Error creating conversation")
 
+
 @router.get("/conversations")
 async def get_conversations(
-    session: AsyncSession = Depends(get_async_session)
+        session: AsyncSession = Depends(get_async_session)
 ) -> list[ConversationResponse]:
     try:
         result = await session.execute(select(Conversation))
