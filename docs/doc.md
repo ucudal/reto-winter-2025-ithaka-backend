@@ -256,5 +256,4 @@ send_whatsapp_message("+598XXXXXXXX", "¡Tu postulación fue registrada!")
 - Se loguean eventos críticos y errores en cada servicio.
 - Para debugging, revisar logs de FastAPI y servicios de background.
 
-
 ---
