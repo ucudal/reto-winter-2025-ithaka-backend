@@ -14,7 +14,7 @@ app = FastAPI(title="Chatbot Backend", version="1.0.0", debug=True)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     print("====== UNHANDLED EXCEPTION ======")
-    traceback.print_exc()  # Esto imprime la traza completa en consola
+    traceback.print_exc()  
     return JSONResponse(
         status_code=500,
         content={
@@ -24,7 +24,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     )@app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     print("====== UNHANDLED EXCEPTION ======")
-    traceback.print_exc()  # Esto imprime la traza completa en consola
+    traceback.print_exc()  
     return JSONResponse(
         status_code=500,
         content={

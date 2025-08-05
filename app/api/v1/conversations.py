@@ -13,7 +13,7 @@ from app.services.chat_service import chat_service
 router = APIRouter()
 
 class ConversationCreate(BaseModel):
-    email: Optional[str] = None  # Opcional  
+    email: Optional[str] = None   
 
 class ConversationResponse(BaseModel):  
     id: int

@@ -9,17 +9,16 @@ from ..graph.state import ConversationState
 from .validation_agent import ValidationAgent
 from ..config.questions import get_question, is_conditional_question, should_continue_after_question_11
 import logging
-import json
 from copilotkit import CopilotKitState
 
 logger = logging.getLogger(__name__)
 
 class WizardAgent:
 
-    #Inicializa el cliente de OpenAI y carga la configuración de preguntas
+    #Inicializa el agente
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY")) #crea el cliente de openai
+        self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini") 
         self.validation = ValidationAgent()
         self._initialize_nodes()
     
@@ -52,7 +51,7 @@ class WizardAgent:
                 prev_node = f"question_{question_num - 1}" if question_num > 1 else "welcome"
                 next_node = f"question_{question_num + 1}" if question_num < 20 else "completion"
                 
-                # Determinar el tipo de nodo basado en la configuración
+                # Determinar el tipo de nodo basado en la configuración (ej: multiple_choice)
                 node_type = self._get_node_type_from_config(question_config)
                 
                 # Crear el nodo
@@ -101,6 +100,7 @@ class WizardAgent:
         else:
             return "question"
 
+    #Proporcionar ejemplos específicos basados en el tipo de validación requerida para cada pregunta
     def _get_example_from_config(self, question_config: Dict[str, Any]) -> Optional[str]:
         validation_type = question_config.get("validation", "")
         
@@ -115,10 +115,12 @@ class WizardAgent:
         
         return examples.get(validation_type, None)
 
+    #Proporcionar mensajes de error específicos y útiles basados en el tipo de validación
     def _get_error_msg_from_config(self, question_config: Dict[str, Any]) -> str:
-        """Obtiene el mensaje de error de la configuración"""
+        """Obtiene el tipo de validación de la configuración de la pregunta"""
         validation_type = question_config.get("validation", "")
         
+        """Selecciona el mensaje correspondiente"""
         error_messages = {
             "name": "No pude identificar tu nombre completo. Por favor usa: Apellido, Nombre",
             "email": "Correo electrónico inválido. Por favor ingresa un correo válido.",
@@ -130,6 +132,7 @@ class WizardAgent:
         
         return error_messages.get(validation_type, "Por favor proporciona una respuesta válida.")
 
+
     def _get_options_from_config(self, question_config: Dict[str, Any]) -> Optional[List[Dict[str, str]]]:
         """Obtiene las opciones de la configuración"""
         options = question_config.get("options", [])
@@ -138,8 +141,9 @@ class WizardAgent:
         
         return [{"value": opt.lower().replace(" ", "_"), "label": opt} for opt in options]
 
+
+    """Maneja el flujo del wizard en el contexto de LangGraph"""
     async def handle_wizard_flow(self, state: ConversationState) -> ConversationState:
-        """Maneja el flujo del wizard en el contexto de LangGraph"""
         
         user_message = state["user_message"]
         wizard_state = state.get("wizard_state", "INACTIVE")
@@ -148,6 +152,7 @@ class WizardAgent:
 
         try:
             # Si es la primera vez o si se envía "postular" para reiniciar
+            #Reinicia el proceso si es primera vez o si el usuario solicita explícitamente
             if wizard_state == "INACTIVE" or user_message.lower().strip() == "postular":
                 return await self._start_wizard(state)
             
@@ -165,6 +170,7 @@ class WizardAgent:
             return self._handle_wizard_error(state, str(e))
 
         return state
+
 
     async def _start_wizard(self, state: ConversationState) -> ConversationState:
         """Inicia el wizard"""
@@ -194,6 +200,7 @@ class WizardAgent:
             logger.error(f"Error starting wizard: {e}")
             return self._handle_wizard_error(state, str(e))
 
+    
     async def _process_wizard_response(self, state: ConversationState) -> ConversationState:
         """Procesa la respuesta del usuario en el wizard"""
         try:
@@ -215,6 +222,9 @@ class WizardAgent:
             
             if user_message.lower() in ["guardar", "save", "pausar"]:
                 return await self._save_progress(state)
+            
+            if user_message.lower() in ["cancelar", "cancel", "salir", "exit"]:
+                return await self._cancel_wizard(state)
             
             # Procesar respuesta según tipo de nodo
             if current_node["node_type"] == "welcome_question":
@@ -275,9 +285,9 @@ class WizardAgent:
             user_input_lower = user_input.lower().strip()
             
             if user_input_lower in ["si", "sí", "yes", "y"]:
-                validated = "si"
+                validated = "SI"
             elif user_input_lower in ["no", "n"]:
-                validated = "no"
+                validated = "NO"
             else:
                 # Error de validación
                 state["agent_context"] = {
@@ -295,7 +305,7 @@ class WizardAgent:
             state["wizard_responses"] = wizard_responses
             
             # Si el usuario responde "SI", continuar con el formulario
-            if validated == "si":
+            if validated == "SI":
                 return await self._advance_to_next(state, node)
             else:
                 # Si el usuario responde "NO", terminar el wizard
@@ -339,6 +349,12 @@ class WizardAgent:
                     validated = user_input
                 else:
                     error_message = f"Por favor proporciona al menos {min_length} caracteres."
+            elif validation_type == "optional_text":
+                # Para texto opcional, aceptar cualquier entrada o texto vacío
+                if user_input.strip():
+                    validated = user_input.strip()
+                else:
+                    validated = "Sin comentarios adicionales"
             elif validation_type == "rubrica":
                 
                 validated, error_message = await self.validation.validate_question(user_input, question_config.get("text", ""))
@@ -412,9 +428,9 @@ class WizardAgent:
             user_input_lower = user_input.lower().strip()
             
             if user_input_lower in ["si", "sí", "yes", "y"]:
-                validated = "si"
+                validated = "SI"
             elif user_input_lower in ["no", "n"]:
-                validated = "no"
+                validated = "NO"
             else:
                 return {"error": "Por favor responde SI o NO"}
             
@@ -517,17 +533,18 @@ class WizardAgent:
             return state
         
         # Retroceder una pregunta
-        state["current_question"] = current_question - 1
+        previous_question = current_question - 1
+        state["current_question"] = previous_question
         
         # Obtener nodo anterior
-        current_node_id = self._get_node_id_by_question(current_question - 1)
-        current_node = self.nodes[current_node_id]
-        response = self._format_node_response(current_node)
+        previous_node_id = self._get_node_id_by_question(previous_question)
+        previous_node = self.nodes[previous_node_id]
+        response = self._format_node_response(previous_node)
         
         state["agent_context"] = {
             "response": response,
-            "current_node": current_node["node_id"],
-            "question_number": current_question - 1
+            "current_node": previous_node["node_id"],
+            "question_number": previous_question
         }
         state["next_action"] = "send_response"
         state["should_continue"] = False
@@ -560,6 +577,35 @@ class WizardAgent:
             raise e
             logger.error(f"Error saving progress: {e}")
             return self._handle_wizard_error(state, "Error al guardar el progreso")
+
+    async def _cancel_wizard(self, state: ConversationState) -> ConversationState:
+        """Cancela el wizard y reinicia el estado"""
+        try:
+            # Limpiar estado del wizard
+            state["wizard_state"] = "INACTIVE"
+            state["current_question"] = 1
+            state["wizard_responses"] = {}
+            state["wizard_session_id"] = None
+            
+            # Limpiar contexto de validación si existe
+            if "human_validation_needed" in state:
+                del state["human_validation_needed"]
+            if "pending_validation" in state:
+                del state["pending_validation"]
+            
+            state["agent_context"] = {
+                "response": "Formulario cancelado. Si quieres volver a empezar, escribe 'postular' o simplemente comienza una nueva conversación.",
+                "wizard_cancelled": True
+            }
+            state["next_action"] = "send_response"
+            state["should_continue"] = False
+            
+            return state
+            
+        except Exception as e:
+            raise e
+            logger.error(f"Error cancelling wizard: {e}")
+            return self._handle_wizard_error(state, "Error al cancelar el formulario")
 
     async def _complete_wizard(self, state: ConversationState) -> ConversationState:
         """Completa el wizard y muestra resumen"""
@@ -653,7 +699,9 @@ Si tienes alguna pregunta, no dudes en contactarnos.
 
     def _get_node_id_by_question(self, question_number: int) -> str:
         """Obtiene el ID del nodo basado en el número de pregunta"""
-        if question_number == 1:
+        if question_number == 0:
+            return "welcome"
+        elif question_number == 1:
             return "welcome"
         elif question_number <= 20:
             return f"question_{question_number}"

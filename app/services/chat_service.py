@@ -69,7 +69,7 @@ class ChatService:
                     wizard_state=result.get("wizard_state"),
                     current_question=result.get("current_question"),
                     wizard_responses=result.get("wizard_responses", {})
-                )
+            )
 
             # Actualizar email de conversación si se proporcionó durante el wizard
             if user_email and conversation_id:
@@ -93,7 +93,6 @@ class ChatService:
             }
 
         except Exception as e:
-            raise e
             logger.error(f"Error in chat service: {e}")
             return {
                 "success": False,
@@ -130,7 +129,6 @@ class ChatService:
                 return new_conversation.id
 
         except Exception as e:
-            raise e
             logger.error(f"Error managing conversation: {e}")
             raise
 
@@ -340,5 +338,4 @@ class ChatService:
             logger.error(f"Error saving wizard state: {e}")
 
 
-# Instancia global del servicio
 chat_service = ChatService()
