@@ -1,6 +1,6 @@
 from typing import Optional, Any
+
 from typing_extensions import TypedDict
-from datetime import datetime
 
 
 class WizardQuestionState(TypedDict):

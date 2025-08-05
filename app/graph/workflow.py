@@ -3,6 +3,8 @@ Workflow principal de LangGraph para orquestar todos los agentes del sistema Ith
 """
 
 from datetime import datetime
+from typing import Any
+
 from langgraph.graph import StateGraph, END
 from .state import ConversationState
 from ..agents.supervisor import route_message, decide_next_agent_wrapper
