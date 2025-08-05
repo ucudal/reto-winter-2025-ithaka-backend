@@ -4,15 +4,15 @@ Script para probar el problema de timeout específico
 """
 
 import asyncio
+
 import aiohttp
-import json
-from typing import Dict, Any
+
 
 async def test_faq_timeout_issue():
     """Prueba específicamente el problema de timeout con FAQs"""
-    
+
     url = "http://localhost:8000/api/v1/copilotkit"
-    
+
     # Casos de prueba que deberían activar el agente FAQ
     faq_test_cases = [
         {
@@ -40,7 +40,7 @@ async def test_faq_timeout_issue():
             "description": "Palabras clave cursos"
         }
     ]
-    
+
     # Casos de prueba que NO deberían activar FAQ
     non_faq_test_cases = [
         {
@@ -56,17 +56,17 @@ async def test_faq_timeout_issue():
             "description": "Pregunta casual"
         }
     ]
-    
+
     print("🧪 Probando problema de timeout con FAQs")
     print("=" * 60)
-    
+
     async with aiohttp.ClientSession() as session:
         # Probar casos FAQ
         print("\n📚 Probando casos que deberían activar FAQ:")
         for i, test_case in enumerate(faq_test_cases, 1):
             print(f"\n📝 Test FAQ {i}: {test_case['description']}")
             print(f"Pregunta: {test_case['message']}")
-            
+
             try:
                 payload = {
                     "message": test_case["message"],
@@ -74,10 +74,10 @@ async def test_faq_timeout_issue():
                     "user_email": None,
                     "properties": {}
                 }
-                
+
                 # Configurar timeout más corto para detectar el problema
                 timeout = aiohttp.ClientTimeout(total=30)
-                
+
                 async with session.post(url, json=payload, timeout=timeout) as response:
                     if response.status == 200:
                         data = await response.json()
@@ -91,18 +91,18 @@ async def test_faq_timeout_issue():
                     else:
                         error_text = await response.text()
                         print(f"❌ Error {response.status}: {error_text}")
-                        
+
             except asyncio.TimeoutError:
                 print(f"⏰ TIMEOUT: La petición tardó más de 30 segundos")
             except Exception as e:
                 print(f"❌ Error de conexión: {e}")
-        
+
         # Probar casos NO FAQ
         print("\n🔍 Probando casos que NO deberían activar FAQ:")
         for i, test_case in enumerate(non_faq_test_cases, 1):
             print(f"\n📝 Test NO-FAQ {i}: {test_case['description']}")
             print(f"Pregunta: {test_case['message']}")
-            
+
             try:
                 payload = {
                     "message": test_case["message"],
@@ -110,9 +110,9 @@ async def test_faq_timeout_issue():
                     "user_email": None,
                     "properties": {}
                 }
-                
+
                 timeout = aiohttp.ClientTimeout(total=30)
-                
+
                 async with session.post(url, json=payload, timeout=timeout) as response:
                     if response.status == 200:
                         data = await response.json()
@@ -122,20 +122,21 @@ async def test_faq_timeout_issue():
                     else:
                         error_text = await response.text()
                         print(f"❌ Error {response.status}: {error_text}")
-                        
+
             except asyncio.TimeoutError:
                 print(f"⏰ TIMEOUT: La petición tardó más de 30 segundos")
             except Exception as e:
                 print(f"❌ Error de conexión: {e}")
 
+
 async def test_workflow_directly():
     """Prueba el workflow directamente para identificar el problema"""
-    
+
     print("\n🔧 Probando workflow directamente...")
-    
+
     try:
         from app.graph.workflow import process_user_message
-        
+
         # Test con pregunta FAQ
         print("\n📝 Probando workflow con pregunta FAQ:")
         result = await process_user_message(
@@ -144,26 +145,28 @@ async def test_workflow_directly():
             chat_history=[],
             user_email=None
         )
-        
+
         print(f"✅ Workflow completado:")
         print(f"   Agente usado: {result.get('agent_used')}")
         print(f"   Respuesta: {result.get('response', '')[:100]}...")
         print(f"   Tiempo de procesamiento: {result.get('processing_time', 'N/A')}")
-        
+
     except Exception as e:
         print(f"❌ Error en workflow: {e}")
+
 
 async def main():
     """Función principal"""
     print("🚀 Iniciando pruebas de timeout específicas")
-    
+
     # Probar el problema de timeout
     await test_faq_timeout_issue()
-    
+
     # Probar workflow directamente
     await test_workflow_directly()
-    
+
     print("\n🎉 Pruebas completadas")
 
+
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())
