@@ -1,6 +1,7 @@
 import asyncio
-from app.db.config.database import engine, Base
-from app.db.models import Conversation, Message, Postulation
+
+from app.db.config.database import Base, engine
+
 
 async def create_tables():
     async with engine.begin() as conn:
