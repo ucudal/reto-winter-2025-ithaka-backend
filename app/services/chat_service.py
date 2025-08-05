@@ -6,7 +6,7 @@ from typing import Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from ..db.config.database import get_async_session
-from ..db.models import Conversation, Message
+from ..db.models import Conversation, Message, WizardSession
 from ..graph.workflow import process_user_message
 import logging
 
@@ -51,13 +51,17 @@ class ChatService:
             chat_history = []
             if conversation_id:
                 chat_history = await self._get_chat_history(conversation_id)
+            
+            # Recuperar estado del wizard si existe
+            wizard_state = await self._get_wizard_state(conversation_id)
 
             # Procesar mensaje a través del workflow de agentes
             result = await process_user_message(
                 user_message=user_message,
                 conversation_id=conversation_id,
                 chat_history=chat_history,
-                user_email=user_email
+                user_email=user_email,
+                wizard_state=wizard_state
             )
 
             # Guardar mensajes en la base de datos
@@ -66,6 +70,16 @@ class ChatService:
                     conversation_id=conversation_id,
                     user_message=user_message,
                     bot_response=result["response"]
+                )
+            
+            # Persistir estado del wizard si es necesario
+            if result.get("wizard_state") in ["ACTIVE", "COMPLETED"]:
+                await self._save_wizard_state(
+                    conversation_id=conversation_id,
+                    wizard_session_id=result.get("wizard_session_id"),
+                    wizard_state=result.get("wizard_state"),
+                    current_question=result.get("current_question"),
+                    wizard_responses=result.get("wizard_responses", {})
                 )
 
             # Actualizar email de conversación si se proporcionó durante el wizard
@@ -81,6 +95,7 @@ class ChatService:
                 "wizard_state": result.get("wizard_state", "INACTIVE"),
                 "current_question": result.get("current_question"),
                 "human_feedback_needed": result.get("human_feedback_needed", False),
+                "human_validation_needed": result.get("human_validation_needed", False),
                 "metadata": {
                     "next_action": result.get("next_action"),
                     "faq_results": result.get("faq_results"),
@@ -263,6 +278,78 @@ class ChatService:
             # Si falla, devolver un ID temporal negativo para indicar que es temporal
             return -1
 
+    async def _get_wizard_state(self, conversation_id: int) -> Optional[dict[str, Any]]:
+        """Recupera el estado del wizard desde la base de datos"""
+        
+        async def operation(session):
+            stmt = select(WizardSession).where(
+                and_(
+                    WizardSession.conv_id == conversation_id,
+                    WizardSession.state.in_(["ACTIVE", "PAUSED"])
+                )
+            ).order_by(WizardSession.updated_at.desc())
+            
+            result = await session.execute(stmt)
+            wizard_session = result.scalar_one_or_none()
+            
+            if wizard_session:
+                return {
+                    "wizard_session_id": f"wizard_{wizard_session.id}",
+                    "wizard_state": wizard_session.state,
+                    "current_question": wizard_session.current_question,
+                    "wizard_responses": wizard_session.responses or {}
+                }
+            return None
+
+        try:
+            return await self._with_session(operation)
+        except Exception as e:
+            logger.error(f"Error getting wizard state: {e}")
+            return None
+
+    async def _save_wizard_state(
+        self,
+        conversation_id: int,
+        wizard_session_id: str,
+        wizard_state: str,
+        current_question: int,
+        wizard_responses: dict[str, Any]
+    ):
+        """Guarda o actualiza el estado del wizard en la base de datos"""
+        
+        async def operation(session):
+            # Buscar sesión existente
+            stmt = select(WizardSession).where(
+                and_(
+                    WizardSession.conv_id == conversation_id,
+                    WizardSession.state.in_(["ACTIVE", "PAUSED"])
+                )
+            )
+            result = await session.execute(stmt)
+            existing_session = result.scalar_one_or_none()
+            
+            if existing_session:
+                # Actualizar sesión existente
+                existing_session.current_question = current_question
+                existing_session.responses = wizard_responses
+                existing_session.state = wizard_state
+            else:
+                # Crear nueva sesión
+                new_session = WizardSession(
+                    conv_id=conversation_id,
+                    current_question=current_question,
+                    responses=wizard_responses,
+                    state=wizard_state
+                )
+                session.add(new_session)
+            
+            await session.commit()
+            logger.info(f"Saved wizard state for conversation {conversation_id}")
+
+        try:
+            await self._with_session(operation)
+        except Exception as e:
+            logger.error(f"Error saving wizard state: {e}")
 
 # Instancia global del servicio
 chat_service = ChatService()
