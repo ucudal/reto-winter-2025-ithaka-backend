@@ -42,3 +42,5 @@ aiohttp==3.12.15
 
 # Development tools
 ruff==0.12.7
+
+aiosqlite
