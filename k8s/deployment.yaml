@@ -24,6 +24,8 @@ spec:
         envFrom:
         - configMapRef:
             name: ithaka-backend-config
+        - secretRef:
+            name: ithaka-backend-secret
         resources:
           requests:
             memory: "128Mi"

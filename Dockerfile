@@ -5,7 +5,7 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
-    DATABASE_URL=sqlite+aiosqlite:///./test.db
+    DATABASE_URL=postgresql+asyncpg://localhost:5432/ithaka_db
 
 # Set work directory
 WORKDIR /app
