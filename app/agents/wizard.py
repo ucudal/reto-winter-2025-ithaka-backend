@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class WizardAgent:
 
     #Inicializa el agente
-    def _init_(self):
+    def __init__(self):
         self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY")) #crea el cliente de openai
         self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini") 
         self.validation = ValidationAgent()

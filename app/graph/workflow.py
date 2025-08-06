@@ -210,12 +210,14 @@ async def process_user_message(
     user_message: str,
     conversation_id: int = None,
     chat_history: list = None,
-    user_email: str = None
+    user_email: str = None,
+    wizard_state: dict[str, Any] = None
 ) -> dict[str, Any]:
     """Función de conveniencia para procesar mensajes de usuario"""
     return await ithaka_workflow.process_message(
         user_message=user_message,
         conversation_id=conversation_id,
         chat_history=chat_history,
-        user_email=user_email
+        user_email=user_email,
+        wizard_state=wizard_state
     )
