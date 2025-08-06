@@ -173,7 +173,7 @@ def extraer_texto_del_payload(payload_json) -> str:
     # Si es dict, buscar campos comunes
     if isinstance(payload_json, dict):
         # Buscar campos comunes que podrían contener la respuesta
-        for key in ['respuesta_abierta', 'respuesta', 'texto', 'comentario', 'descripcion', 'content', 'message']:
+        for key in ['idea', 'datos', 'comentario', 'motivacion', 'descripcion', 'texto', 'proyecto', 'emprendimiento', 'adicionales']:
             if key in payload_json and payload_json[key]:
                 return str(payload_json[key])
         
