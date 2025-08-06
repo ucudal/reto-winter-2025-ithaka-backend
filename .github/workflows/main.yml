@@ -3,7 +3,7 @@ name: Docker Build and Push
 on:
   push:
     branches:
-      - DevOps    # rama actual para pruebas
+      - Devops    # rama actual para pruebas
       - main      # Rama principal
   pull_request:
     branches:
