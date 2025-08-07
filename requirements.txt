@@ -18,5 +18,8 @@ numpy>=1.24.0
 sentence-transformers>=2.2.0
 tiktoken>=0.5.0
 
+# Discord Bot Dependencies
+discord.py>=2.3.0,<3.0.0
+
 # Testing dependencies
 aiohttp>=3.8.0

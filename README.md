@@ -81,14 +81,66 @@ python scripts/populate_faqs.py
 ```
 
 ### 7. Ejecución
-Para ejecutarlo ir a la raíz del proyecto y ejecutar:
 
+#### Opción A: Sistema Completo (API + Discord Bot)
 ```bash
-uvicorn app.main:app --reload
+python run_complete_system.py
+```
+
+#### Opción B: Solo API Backend
+```bash
+python run_api_only.py
+```
+
+#### Opción C: Solo Discord Bot
+```bash
+python run_discord_bot.py
+```
+
+#### Opción D: Verificación del Sistema
+```bash
+python check_system.py
 ```
 
 ### Documentación
 Podes revisar la doc en http://127.0.0.1:8000/docs
+
+## 🤖 Discord Bot
+
+El proyecto incluye un bot de Discord integrado que sigue el [tutorial de Real Python](https://realpython.com/how-to-make-a-discord-bot-python/).
+
+### Configuración del Bot
+
+1. **Crear aplicación en Discord**:
+   - Ve a [Discord Developer Portal](https://discord.com/developers/applications)
+   - Crea una nueva aplicación y agrega un bot
+   - Copia el token del bot
+
+2. **Configurar variables de entorno**:
+   Agrega a tu archivo `.env`:
+   ```bash
+   DISCORD_TOKEN=tu_token_aqui
+   ```
+
+3. **Probar la configuración**:
+   ```bash
+   python test_discord_bot.py
+   ```
+
+4. **Ejecutar el bot**:
+   ```bash
+   python run_discord_bot.py
+   ```
+
+### Características del Bot
+
+- **Bot Básico**: Comandos simples como `!ping`, `!info`, `!help`
+- **Bot Avanzado**: Funciones completas con moderación, estadísticas y gestión de canales
+- **Gestión de miembros**: Mensajes de bienvenida y despedida automáticos
+- **Comandos de administrador**: Crear/eliminar canales, moderar mensajes
+- **Sistema de roles**: Permisos basados en roles de Discord
+
+Para más detalles, consulta la [documentación del bot](app/discord_bot/README.md).
 
 ## 🤖 Sistema de Agentes IA
 
