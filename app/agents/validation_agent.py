@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class ValidationAgent:
     """Agente para validar y formatear respuestas del usuario"""
     
-    def _init_(self, copilot_state: CopilotKitState = None):
+    def __init__(self, copilot_state: CopilotKitState = None):
         self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         self.copilot_state = copilot_state or CopilotKitState()

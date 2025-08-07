@@ -82,7 +82,7 @@ class ValidatorAgent:
         """Ejecuta validación específica según el tipo"""
 
         try:
-            if validation_type == "email":
+            """if validation_type == "email":
                 return self._validate_email(value)
 
             elif validation_type == "phone":
@@ -92,9 +92,9 @@ class ValidatorAgent:
                 return self._validate_ci(value)
 
             elif validation_type == "name":
-                return self._validate_name(value)
+                return self._validate_name(value)"""
 
-            elif validation_type == "location":
+            if validation_type == "location":
                 return self._validate_location(value)
 
             elif validation_type == "text_min_length":
@@ -112,8 +112,7 @@ class ValidatorAgent:
         except Exception as e:
             return {"is_valid": False, "error": str(e)}
 
-    def _validate_email(self, email: str) -> dict[str, Any]:
-        """Valida email usando función existente"""
+    """def _validate_email(self, email: str) -> dict[str, Any]:
         try:
             validate_email(email)
             return {
@@ -122,10 +121,9 @@ class ValidatorAgent:
                 "normalized_value": email.lower().strip()
             }
         except ValidationError as e:
-            return {"is_valid": False, "error": str(e)}
+            return {"is_valid": False, "error": str(e)}"""
 
-    def _validate_phone(self, phone: str) -> dict[str, Any]:
-        """Valida teléfono usando función existente"""
+    """def _validate_phone(self, phone: str) -> dict[str, Any]:
         try:
             validate_phone(phone)
             return {
@@ -134,10 +132,9 @@ class ValidatorAgent:
                 "normalized_value": phone.strip()
             }
         except ValidationError as e:
-            return {"is_valid": False, "error": str(e)}
+            return {"is_valid": False, "error": str(e)}"""
 
-    def _validate_ci(self, ci: str) -> dict[str, Any]:
-        """Valida cédula usando función existente"""
+    """def _validate_ci(self, ci: str) -> dict[str, Any]:
         try:
             validate_ci(ci)
             return {
@@ -146,10 +143,9 @@ class ValidatorAgent:
                 "normalized_value": re.sub(r'\D', '', ci)  # Solo números
             }
         except ValidationError as e:
-            return {"is_valid": False, "error": str(e)}
+            return {"is_valid": False, "error": str(e)}"""
 
-    def _validate_name(self, name: str) -> dict[str, Any]:
-        """Valida nombre y apellido"""
+    """def _validate_name(self, name: str) -> dict[str, Any]:
         name = name.strip()
 
         if len(name) < 2:
@@ -168,21 +164,23 @@ class ValidatorAgent:
             "message": "Nombre válido",
             "normalized_value": name.title()  # Primera letra mayúscula
         }
-
+"""
     def _validate_location(self, location: str) -> dict[str, Any]:
-        """Valida ubicación (país y ciudad)"""
+        """Valida ubicación con tolerancia a formatos"""
+        if not location:
+            return {"is_valid": False, "error": "La ubicación no puede estar vacía"}
+        
         location = location.strip()
+        logger.debug(f"Validando ubicación: '{location}'")
 
-        if len(location) < 3:
-            return {"is_valid": False, "error": "La ubicación debe ser más específica"}
-
-        # Verificar que contenga al menos país y ciudad
-        if ',' not in location and len(location.split()) < 2:
-            return {
-                "is_valid": False,
-                "error": "Por favor especifica país y ciudad (ej: Montevideo, Uruguay)"
-            }
-
+        # Acepta: "Ciudad, País", "Ciudad País", o "Ciudad-País"
+        if len(location) < 4:
+            return {"is_valid": False, "error": "Ubicación demasiado corta"}
+        
+        # Normaliza a "Ciudad, País"
+        if ',' not in location:
+            location = location.replace(' ', ', ', 1)  # Reemplaza solo el primer espacio
+        
         return {
             "is_valid": True,
             "message": "Ubicación válida",
