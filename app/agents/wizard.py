@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional, List
 from openai import AsyncOpenAI
 from ..graph.state import ConversationState
 from .validation_agent import ValidationAgent
+from .validator import validator_agent
 from ..config.questions import get_question, is_conditional_question, should_continue_after_question_11
 import logging
 from copilotkit import CopilotKitState
@@ -17,7 +18,7 @@ class WizardAgent:
 
     #Inicializa el agente
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY")) #crea el cliente de openai
+        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY")) 
         self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini") 
         self.validation = ValidationAgent()
         self._initialize_nodes()
@@ -343,6 +344,13 @@ class WizardAgent:
                 validated, error_message = await self.validation.validate_phone(user_input)
             elif validation_type == "ci":
                 validated, error_message = await self.validation.validate_document_id(user_input)
+
+            elif validation_type == "location":
+                result = validator_agent._validate_location(user_input)
+                if not result["is_valid"]:
+                    logger.warning(f"Error en ubicación: {result['error']}")
+                return result
+            
             elif validation_type == "text_min_length":
                 min_length = question_config.get("min_length", 10)
                 if len(user_input.strip()) >= min_length:
@@ -356,7 +364,6 @@ class WizardAgent:
                 else:
                     validated = "Sin comentarios adicionales"
             elif validation_type == "rubrica":
-                
                 validated, error_message = await self.validation.validate_question(user_input, question_config.get("text", ""))
             else:
                 # Validación genérica
@@ -386,6 +393,7 @@ class WizardAgent:
         except Exception as e:
             logger.error(f"Error validating question response: {e}")
             return {"error": "Ocurrió un error al validar tu respuesta. Por favor intenta de nuevo."}
+        
 
     async def _process_multiple_choice_response(self, state: ConversationState, node: Dict[str, Any], user_input: str) -> Dict[str, Any]:
         """Procesa respuesta de selección única"""
