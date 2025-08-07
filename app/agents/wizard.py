@@ -145,7 +145,7 @@ class WizardAgent:
     """Maneja el flujo del wizard en el contexto de LangGraph"""
     async def handle_wizard_flow(self, state: ConversationState) -> ConversationState:
         
-        user_message = state["user_message"]
+        user_message = [m.content for m in state["messages"] if m.type == "human"][0]
         wizard_state = state.get("wizard_state", "INACTIVE")
         current_question = state.get("current_question", 1)
         wizard_responses = state.get("wizard_responses", {})
@@ -204,7 +204,7 @@ class WizardAgent:
     async def _process_wizard_response(self, state: ConversationState) -> ConversationState:
         """Procesa la respuesta del usuario en el wizard"""
         try:
-            user_message = state["user_message"]
+            user_message = [m.content for m in state["messages"] if m.type == "human"][0]
             current_question = state.get("current_question", 1)
             wizard_responses = state.get("wizard_responses", {})
             

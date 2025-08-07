@@ -4,14 +4,24 @@ Agente FAQ - Responde preguntas frecuentes usando búsqueda vectorial
 
 import os
 from typing import Any
+
+import numpy as np
 from openai import AsyncOpenAI
-from ..db.config.database import get_async_session
+from ..db.config.database import get_async_session, get_async_session_good
 from ..services.embedding_service import embedding_service
 from ..graph.state import ConversationState
 import logging
 
 logger = logging.getLogger(__name__)
 
+def to_serializable(obj):
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, dict):
+        return {k: to_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [to_serializable(v) for v in obj]
+    return obj
 
 class FAQAgent:
     """Agente para responder preguntas frecuentes usando base vectorial"""
@@ -30,11 +40,11 @@ class FAQAgent:
     async def handle_faq_query(self, state: ConversationState) -> ConversationState:
         """Procesa una consulta FAQ del usuario"""
 
-        user_message = state["user_message"]
+        user_message = [m.content for m in state["messages"] if m.type == "human"][-1]
 
         try:
             # Obtener sesión de base de datos
-            async for session in get_async_session():
+            async for session in get_async_session_good():
                 # Buscar FAQs similares
                 similar_faqs = await embedding_service.search_similar_faqs(
                     query=user_message,
@@ -49,7 +59,7 @@ class FAQAgent:
                         user_message, similar_faqs
                     )
 
-                    state["faq_results"] = similar_faqs
+                    state["faq_results"] = to_serializable(similar_faqs)
                     state["next_action"] = "send_response"
                     state["should_continue"] = False
 

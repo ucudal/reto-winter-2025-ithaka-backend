@@ -14,21 +14,16 @@ logger = logging.getLogger(__name__)
 
 ithaka_workflow = IthakaWorkflow()
 
-
 def create_copilotkit_sdk():
     """Crea el SDK de CopilotKit con el agente de LangGraph"""
 
     sdk = CopilotKitRemoteEndpoint(
-        agents=lambda context: [
+        agents=[
             LangGraphAgent(
                 name="ithaka_agent",
                 description="Agente de ITHAKA para responder preguntas sobre programas, cursos, Fellows y servicios del centro de emprendimiento e innovación",
                 graph=ithaka_workflow.graph,
-                langgraph_config={
-                    "thread_id": context.get("thread_id", "default"),
-                    "properties": context.get("properties", {})
-                }
-            )
+            ),
         ]
     )
 

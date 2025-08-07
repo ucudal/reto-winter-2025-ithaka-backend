@@ -8,6 +8,8 @@ from openai import AsyncOpenAI
 from ..graph.state import ConversationState
 import logging
 
+from ..websockets.schemas import UserMessage
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,9 +26,8 @@ class SupervisorAgent:
 
     async def route_message(self, state: ConversationState) -> ConversationState:
         """Analiza el mensaje del usuario y decide el routing"""
-
-        user_message = state["user_message"].lower().strip()
-        chat_history = state.get("chat_history", [])
+        chat_history = [m.content for m in state["messages"] if m.type == "human"]
+        user_message = chat_history[-1].strip()
         # conversation_id = state.get("conversation_id") # TODO: Agregar cuando esté disponible
 
         # TODO: Verificar sesiones activas del wizard cuando esté disponible
@@ -106,7 +107,7 @@ class SupervisorAgent:
                 # Últimos 3 mensajes para contexto
                 last_messages = history[-3:]
                 context = "\n".join(
-                    [f"{msg['role']}: {msg['content']}" for msg in last_messages])
+                    [f"{msg.role}: {msg.content}" for msg in last_messages])
 
             prompt = f"""
 Analiza la intención del usuario en este mensaje y determina a qué agente debe dirigirse.

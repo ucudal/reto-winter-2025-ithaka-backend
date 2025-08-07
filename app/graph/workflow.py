@@ -2,18 +2,21 @@
 Workflow principal de LangGraph para orquestar todos los agentes del sistema Ithaka
 """
 
-from datetime import datetime
-from typing import Any
-
-from langgraph.graph import StateGraph, END
-from .state import ConversationState
-from ..agents.supervisor import route_message, decide_next_agent_wrapper
-# TODO: Integrar wizard agent cuando esté disponible
-from ..agents.wizard import handle_wizard_flow
-from ..agents.faq import handle_faq_query
 # TODO: Integrar validator cuando esté disponible
 # from ..agents.validator import validate_data
 import logging
+from datetime import datetime
+from typing import Any
+
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.graph import StateGraph, END
+from langgraph.graph.state import CompiledStateGraph
+
+from .state import ConversationState
+# TODO: Integrar wizard agent cuando esté disponible
+from ..agents.wizard import handle_wizard_flow
+from ..agents.faq import handle_faq_query
+from ..agents.supervisor import route_message, decide_next_agent_wrapper
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +27,7 @@ class IthakaWorkflow:
     def __init__(self):
         self.graph = self._build_graph()
 
-    def _build_graph(self) -> StateGraph:
+    def _build_graph(self) -> CompiledStateGraph:
         """Construye el grafo de estados LangGraph"""
 
         # Crear el grafo con el estado compartido
@@ -67,13 +70,13 @@ class IthakaWorkflow:
 
         # Los otros agentes terminan el flujo
         # TODO: Agregar wizard edge cuando esté disponible
-        # workflow.add_edge("wizard", END)
+        workflow.add_edge("wizard", END)
         workflow.add_edge("faq", END)
         # TODO: Agregar validator edge cuando esté disponible
         # workflow.add_edge("validator", END)
 
         # Compilar el grafo
-        return workflow.compile()
+        return workflow.compile(checkpointer=InMemorySaver())
 
     def _wizard_should_continue(self, state: ConversationState) -> str:
         """Determina si el wizard debe continuar o terminar"""
@@ -202,7 +205,8 @@ class IthakaWorkflow:
 
 
 # Instancia global del workflow
-ithaka_workflow = IthakaWorkflow()
+# ithaka_workflow = IthakaWorkflow()
+
 
 # Función de conveniencia para usar desde otros módulos
 

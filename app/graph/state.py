@@ -1,5 +1,6 @@
-from typing import Optional, Any
+from typing import Optional, Any, Annotated
 
+from langgraph.graph import add_messages
 from typing_extensions import TypedDict
 
 
@@ -16,5 +17,5 @@ class WizardQuestionState(TypedDict):
     iteration_count: int
 
 
-# Definir ConversationState como un diccionario normal para compatibilidad con LangGraph
-ConversationState = dict[str, Any]
+class ConversationState(TypedDict):
+    messages: Annotated[list, add_messages]
