@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.chat import router as chat_router
 from app.api.v1.conversations import router as conversations_router
-from app.api.v1.copilotkit import router as copilotkit_router
+from app.api.v1.copilotkit_endpoint import router as copilotkit_router
 from app.api.v1.websockets import router as websockets_router
 
 v1 = '/api/v1'

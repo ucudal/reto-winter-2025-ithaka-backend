@@ -5,6 +5,7 @@ Agente Wizard - Maneja formularios interactivos para postulación de proyectos d
 import os
 from typing import Dict, Any, Optional, List
 from openai import AsyncOpenAI
+from langchain_core.messages import AIMessage
 from ..graph.state import ConversationState
 from .validation_agent import ValidationAgent
 from ..config.questions import get_question, is_conditional_question, should_continue_after_question_11
@@ -192,8 +193,17 @@ class WizardAgent:
             }
             state["next_action"] = "send_response"
             state["should_continue"] = False
-            
-            return state
+
+            return {
+                "agent_context": state["agent_context"],
+                "next_action": state["next_action"],
+                "should_continue": state["should_continue"],
+                "wizard_state": state["wizard_state"],
+                "current_question": state["current_question"],
+                "wizard_responses": state["wizard_responses"],
+                "wizard_session_id": state["wizard_session_id"],
+                "messages": [AIMessage(content=response)]
+            }
             
         except Exception as e:
             raise e
@@ -257,7 +267,12 @@ class WizardAgent:
                 }
                 state["next_action"] = "send_response"
                 state["should_continue"] = False
-                return state
+                return {
+                    "agent_context": state["agent_context"],
+                    "next_action": state["next_action"],
+                    "should_continue": state["should_continue"],
+                    "messages": [AIMessage(content=result["error"])]
+                }
             
             # Si se necesita validación humana
             if result.get("status") == "human_validation_needed":
@@ -269,7 +284,12 @@ class WizardAgent:
                 }
                 state["next_action"] = "send_response"
                 state["should_continue"] = False
-                return state
+                return {
+                    "agent_context": state["agent_context"],
+                    "next_action": state["next_action"],
+                    "should_continue": state["should_continue"],
+                    "messages": [AIMessage(content=result["message"])]
+                }
             
             # Avanzar al siguiente nodo
             return await self._advance_to_next(state, current_node)
@@ -516,8 +536,14 @@ class WizardAgent:
         }
         state["next_action"] = "send_response"
         state["should_continue"] = False
-        
-        return state
+
+        return {
+            "agent_context": state["agent_context"],
+            "next_action": state["next_action"],
+            "should_continue": state["should_continue"],
+            "current_question": state["current_question"],
+            "messages": [AIMessage(content=response)]
+        }
 
     async def _go_back(self, state: ConversationState) -> ConversationState:
         """Retrocede a la pregunta anterior"""
@@ -548,8 +574,14 @@ class WizardAgent:
         }
         state["next_action"] = "send_response"
         state["should_continue"] = False
-        
-        return state
+
+        return {
+            "agent_context": state["agent_context"],
+            "next_action": state["next_action"],
+            "should_continue": state["should_continue"],
+            "current_question": state["current_question"],
+            "messages": [AIMessage(content=response)]
+        }
 
     async def _save_progress(self, state: ConversationState) -> ConversationState:
         """Guarda el progreso actual"""
@@ -570,8 +602,13 @@ class WizardAgent:
             }
             state["next_action"] = "send_response"
             state["should_continue"] = False
-            
-            return state
+
+            return {
+                "agent_context": state["agent_context"],
+                "next_action": state["next_action"],
+                "should_continue": state["should_continue"],
+                "messages": [AIMessage(content="Progreso guardado exitosamente. Puedes continuar más tarde.")]
+            }
             
         except Exception as e:
             raise e
@@ -599,8 +636,13 @@ class WizardAgent:
             }
             state["next_action"] = "send_response"
             state["should_continue"] = False
-            
-            return state
+
+            return {
+                "agent_context": state["agent_context"],
+                "next_action": state["next_action"],
+                "should_continue": state["should_continue"],
+                "messages": [AIMessage(content="Formulario cancelado. Si quieres volver a empezar, escribe 'postular' o simplemente comienza una nueva conversación.")]
+            }
             
         except Exception as e:
             raise e
@@ -623,8 +665,15 @@ class WizardAgent:
             }
             state["next_action"] = "send_response"
             state["should_continue"] = False
-            
-            return state
+
+            return {
+                "agent_context": state["agent_context"],
+                "next_action": state["next_action"],
+                "should_continue": state["should_continue"],
+                "wizard_state": state["wizard_state"],
+                "wizard_responses": state["wizard_responses"],
+                "messages": [AIMessage(content=summary)]
+            }
             
         except Exception as e:
             raise e
@@ -718,8 +767,13 @@ Si tienes alguna pregunta, no dudes en contactarnos.
         }
         state["next_action"] = "send_response"
         state["should_continue"] = False
-        
-        return state
+
+        return {
+            "agent_context": state["agent_context"],
+            "next_action": state["next_action"],
+            "should_continue": state["should_continue"],
+            "messages": [AIMessage(content=state["agent_context"]["response"])]
+        }
 
     async def _show_completion_summary(self, state: ConversationState) -> ConversationState:
         """Muestra el resumen de completación"""
@@ -732,8 +786,13 @@ Si tienes alguna pregunta, no dudes en contactarnos.
         }
         state["next_action"] = "send_response"
         state["should_continue"] = False
-        
-        return state
+
+        return {
+            "agent_context": state["agent_context"],
+            "next_action": state["next_action"],
+            "should_continue": state["should_continue"],
+            "messages": [AIMessage(content=summary)]
+        }
 
     async def _handle_human_validation_response(self, state: ConversationState, user_response: str) -> ConversationState:
         """Maneja la respuesta de validación humana"""
@@ -776,4 +835,5 @@ wizard_agent = WizardAgent()
 # Función para usar en el grafo LangGraph
 async def handle_wizard_flow(state: ConversationState) -> ConversationState:
     """Función wrapper para LangGraph"""
-    return await wizard_agent.handle_wizard_flow(state)
+    x = await wizard_agent.handle_wizard_flow(state)
+    return x

@@ -3,12 +3,12 @@ Agente Supervisor - Router principal del sistema
 Analiza la intención del usuario y decide a qué agente derivar
 """
 
-import os
-from openai import AsyncOpenAI
-from ..graph.state import ConversationState
 import logging
+import os
 
-from ..websockets.schemas import UserMessage
+from openai import AsyncOpenAI
+
+from ..graph.state import ConversationState
 
 logger = logging.getLogger(__name__)
 
@@ -202,6 +202,7 @@ Responde ÚNICAMENTE con una palabra: faq
 
 # Instancia global del agente
 supervisor_agent = SupervisorAgent()
+
 
 # Función para usar en el grafo LangGraph
 

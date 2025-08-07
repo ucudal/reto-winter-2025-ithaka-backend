@@ -2,17 +2,20 @@
 Agente FAQ - Responde preguntas frecuentes usando búsqueda vectorial
 """
 
+import logging
 import os
 from typing import Any
 
 import numpy as np
 from openai import AsyncOpenAI
-from ..db.config.database import get_async_session, get_async_session_good
-from ..services.embedding_service import embedding_service
+from langchain_core.messages import AIMessage
+
+from ..db.config.database import get_async_session
 from ..graph.state import ConversationState
-import logging
+from ..services.embedding_service import embedding_service
 
 logger = logging.getLogger(__name__)
+
 
 def to_serializable(obj):
     if isinstance(obj, np.floating):
@@ -22,6 +25,7 @@ def to_serializable(obj):
     if isinstance(obj, list):
         return [to_serializable(v) for v in obj]
     return obj
+
 
 class FAQAgent:
     """Agente para responder preguntas frecuentes usando base vectorial"""
@@ -44,7 +48,7 @@ class FAQAgent:
 
         try:
             # Obtener sesión de base de datos
-            async for session in get_async_session_good():
+            async for session in get_async_session():
                 # Buscar FAQs similares
                 similar_faqs = await embedding_service.search_similar_faqs(
                     query=user_message,
@@ -78,7 +82,14 @@ class FAQAgent:
                     "query_processed": True
                 }
 
-                break  # Solo necesitamos una sesión
+                # Devolver delta de messages para que add_messages lo agregue
+                return {
+                    "agent_context": state["agent_context"],
+                    "faq_results": state.get("faq_results", []),
+                    "next_action": state["next_action"],
+                    "should_continue": state["should_continue"],
+                    "messages": [AIMessage(content=response)]
+                }
 
         except Exception as e:
             logger.error(f"Error in FAQ query processing: {e}")
@@ -102,13 +113,17 @@ Mientras tanto, puedes:
             }
             state["next_action"] = "send_response"
             state["should_continue"] = False
-
-        return state
+            return {
+                "agent_context": state["agent_context"],
+                "next_action": state["next_action"],
+                "should_continue": state["should_continue"],
+                "messages": [AIMessage(content=fallback_response)]
+            }
 
     async def _generate_contextual_response(
-        self,
-        user_query: str,
-        similar_faqs: list[dict[str, Any]]
+            self,
+            user_query: str,
+            similar_faqs: list[dict[str, Any]]
     ) -> str:
         """Genera una respuesta contextualizada basada en FAQs similares"""
 
@@ -241,6 +256,7 @@ Te sugiero:
 
 # Instancia global del agente
 faq_agent = FAQAgent()
+
 
 # Función para usar en el grafo LangGraph
 
