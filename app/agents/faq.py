@@ -7,8 +7,8 @@ import os
 from typing import Any
 
 import numpy as np
-from openai import AsyncOpenAI
 from langchain_core.messages import AIMessage
+from openai import AsyncOpenAI
 
 from ..db.config.database import get_async_session
 from ..graph.state import ConversationState

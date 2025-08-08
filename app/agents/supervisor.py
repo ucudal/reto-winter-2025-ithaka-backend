@@ -30,21 +30,9 @@ class SupervisorAgent:
         user_message = chat_history[-1].strip()
         # conversation_id = state.get("conversation_id") # TODO: Agregar cuando esté disponible
 
-        # TODO: Verificar sesiones activas del wizard cuando esté disponible
         if state.get("wizard_session_id") and state.get("wizard_state") == "ACTIVE":
             logger.info("Routing to wizard - active session detected in state")
             return self._route_to_wizard(state)
-
-        # TODO: Verificar sesiones en BD cuando wizard esté disponible
-        # if conversation_id:
-        #     active_wizard_session = await self._check_active_wizard_session(conversation_id)
-        #     if active_wizard_session:
-        #         logger.info(f"Routing to wizard - active session {active_wizard_session['id']} found in DB")
-        #         state["wizard_session_id"] = active_wizard_session["id"]
-        #         state["wizard_state"] = active_wizard_session["state"]
-        #         state["current_question"] = active_wizard_session["current_question"]
-        #         state["wizard_responses"] = active_wizard_session["responses"]
-        #         return self._route_to_wizard(state)
 
         # Análisis de intención usando patrones simples primero
         intention = self._analyze_intention_simple(user_message)
@@ -86,7 +74,7 @@ class SupervisorAgent:
         ]
 
         # Comandos del wizard cuando esté disponible
-        wizard_commands = ["volver", "cancelar", "continuar", "siguiente"]
+        wizard_commands = ["volver", "cancelar"]
 
         # Verificar comandos del wizard cuando esté disponible
         if any(cmd in message for cmd in wizard_commands):
@@ -168,30 +156,6 @@ Responde ÚNICAMENTE con una palabra: faq
         state["current_agent"] = "wizard"
         return state
 
-    # TODO: Implementar cuando wizard esté disponible
-    # async def _check_active_wizard_session(self, conversation_id: int) -> Optional[Dict[str, Any]]:
-    #     """Verifica si hay una sesión activa del wizard en la base de datos"""
-    #     try:
-    #         async for session in get_async_session():
-    #             stmt = select(WizardSession).where(
-    #                 WizardSession.conv_id == conversation_id,
-    #                 WizardSession.state.in_(["ACTIVE", "PAUSED", "STARTING"])
-    #             )
-    #             result = await session.execute(stmt)
-    #             active_session = result.scalar_one_or_none()
-    #             if active_session:
-    #                 return {
-    #                         "id": active_session.id,
-    #                         "conv_id": active_session.conv_id,
-    #                         "current_question": active_session.current_question,
-    #                         "responses": active_session.responses or {},
-    #                         "state": active_session.state
-    #                     }
-    #             break
-    #     except Exception as e:
-    #         logger.error(f"Error checking active wizard session: {e}")
-    #     return None
-
     def decide_next_agent(self, state: ConversationState) -> str:
         """Decide el próximo agente en el flujo del grafo"""
 
@@ -208,9 +172,6 @@ Responde ÚNICAMENTE con una palabra: faq
 
 # Instancia global del agente
 supervisor_agent = SupervisorAgent()
-
-
-# Función para usar en el grafo LangGraph
 
 
 async def route_message(state: ConversationState) -> ConversationState:

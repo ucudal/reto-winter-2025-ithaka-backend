@@ -4,11 +4,12 @@ Script para poblar la base de datos con FAQs de Ithaka
 Uso: python scripts/populate_faqs.py
 """
 
+import asyncio
+import sys
+from pathlib import Path
+
 from app.db.config.database import get_async_session
 from app.services.embedding_service import embedding_service
-import sys
-import asyncio
-from pathlib import Path
 
 # Agregar el directorio raíz al path
 project_root = Path(__file__).parent.parent
