@@ -6,19 +6,19 @@ from datetime import datetime
 from typing import Optional
 from app.db.config.database import get_async_session
 from app.db.models import Conversation
+from app.services.chat_service import chat_service
 
 router = APIRouter()
 
 
 class ConversationCreate(BaseModel):
-    email: Optional[str] = None  # Opcional  
+    email: Optional[str] = None   
 
 
 class ConversationResponse(BaseModel):
     id: int
     email: Optional[str]
     started_at: datetime
-
 
 @router.post("/conversations", response_model=ConversationResponse)
 async def create_conversation(

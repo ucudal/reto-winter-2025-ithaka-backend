@@ -3,10 +3,12 @@ Agente Supervisor - Router principal del sistema
 Analiza la intención del usuario y decide a qué agente derivar
 """
 
-import os
-from openai import AsyncOpenAI
-from ..graph.state import ConversationState
 import logging
+import os
+
+from openai import AsyncOpenAI
+
+from ..graph.state import ConversationState
 
 logger = logging.getLogger(__name__)
 
@@ -24,15 +26,14 @@ class SupervisorAgent:
 
     async def route_message(self, state: ConversationState) -> ConversationState:
         """Analiza el mensaje del usuario y decide el routing"""
-
-        user_message = state["user_message"].lower().strip()
-        chat_history = state.get("chat_history", [])
+        chat_history = [m.content for m in state["messages"] if m.type == "human"]
+        user_message = chat_history[-1].strip()
         # conversation_id = state.get("conversation_id") # TODO: Agregar cuando esté disponible
 
         # TODO: Verificar sesiones activas del wizard cuando esté disponible
-        # if state.get("wizard_session_id") and state.get("wizard_state") == "ACTIVE":
-        #     logger.info("Routing to wizard - active session detected in state")
-        #     return self._route_to_wizard(state)
+        if state.get("wizard_session_id") and state.get("wizard_state") == "ACTIVE":
+            logger.info("Routing to wizard - active session detected in state")
+            return self._route_to_wizard(state)
 
         # TODO: Verificar sesiones en BD cuando wizard esté disponible
         # if conversation_id:
@@ -64,12 +65,18 @@ class SupervisorAgent:
     def _analyze_intention_simple(self, message: str) -> str:
         """Análisis simple de intención basado en palabras clave"""
 
-        # TODO: Patrones para wizard cuando esté disponible
-        # wizard_keywords = [
-        #     "postular", "emprender", "formulario", "idea", "negocio",
-        #     "startup", "proyecto", "emprendimiento", "incubadora",
-        #     "quiero postular", "tengo una idea"
-        # ]
+        # Patrones para wizard cuando esté disponible
+        wizard_keywords = [
+            # Acciones directas
+            "postular", "postulación", "inscribirme", "inscripcion", "inscripción",
+            # Intenciones naturales
+            "me quiero postular", "quiero postularme", "tengo una idea", "presentar una idea",
+            "tengo un proyecto", "quiero presentar un proyecto", "quiero aplicar",
+            # Contexto de emprendimiento
+            "emprender", "emprendimiento", "incubadora", "startup", "negocio",
+            # Formularios
+            "formulario"
+        ]
 
         # Patrones para FAQ
         faq_keywords = [
@@ -78,16 +85,16 @@ class SupervisorAgent:
             "actividades", "contacto", "campus", "costo"
         ]
 
-        # TODO: Comandos del wizard cuando esté disponible
-        # wizard_commands = ["volver", "cancelar", "continuar", "siguiente"]
+        # Comandos del wizard cuando esté disponible
+        wizard_commands = ["volver", "cancelar", "continuar", "siguiente"]
 
-        # TODO: Verificar comandos del wizard cuando esté disponible
-        # if any(cmd in message for cmd in wizard_commands):
-        #     return "wizard"
+        # Verificar comandos del wizard cuando esté disponible
+        if any(cmd in message for cmd in wizard_commands):
+            return "wizard"
 
-        # TODO: Verificar patrones de postulación cuando wizard esté disponible
-        # if any(keyword in message for keyword in wizard_keywords):
-        #     return "wizard"
+        # Verificar patrones de postulación cuando wizard esté disponible
+        if any(keyword in message for keyword in wizard_keywords):
+            return "wizard"
 
         # Verificar patrones de FAQ
         if any(keyword in message for keyword in faq_keywords):
@@ -106,7 +113,7 @@ class SupervisorAgent:
                 # Últimos 3 mensajes para contexto
                 last_messages = history[-3:]
                 context = "\n".join(
-                    [f"{msg['role']}: {msg['content']}" for msg in last_messages])
+                    [f"{msg.role}: {msg.content}" for msg in last_messages])
 
             prompt = f"""
 Analiza la intención del usuario en este mensaje y determina a qué agente debe dirigirse.
@@ -145,8 +152,7 @@ Responde ÚNICAMENTE con una palabra: faq
             intention = response.choices[0].message.content.strip().lower()
 
             # Validar respuesta
-            # TODO: Agregar "validator" y "wizard" cuando estén disponibles
-            if intention in ["faq"]:
+            if intention in ["faq", "wizard"]:
                 return intention
             else:
                 logger.warning(f"Invalid AI intention response: {intention}")
@@ -156,12 +162,11 @@ Responde ÚNICAMENTE con una palabra: faq
             logger.error(f"Error in AI intention analysis: {e}")
             return "faq"  # Safe fallback
 
-    # TODO: Implementar cuando wizard esté disponible
-    # def _route_to_wizard(self, state: ConversationState) -> ConversationState:
-    #     """Rutea específicamente al wizard"""
-    #     state["supervisor_decision"] = "wizard"
-    #     state["current_agent"] = "wizard"
-    #     return state
+    def _route_to_wizard(self, state: ConversationState) -> ConversationState:
+        """Rutea específicamente al wizard"""
+        state["supervisor_decision"] = "wizard"
+        state["current_agent"] = "wizard"
+        return state
 
     # TODO: Implementar cuando wizard esté disponible
     # async def _check_active_wizard_session(self, conversation_id: int) -> Optional[Dict[str, Any]]:
@@ -194,8 +199,7 @@ Responde ÚNICAMENTE con una palabra: faq
         supervisor_decision = state.get("supervisor_decision")
 
         # Si hay decisión del supervisor, seguir esa ruta
-        # TODO: Agregar "validator" y "wizard" cuando estén disponibles
-        if supervisor_decision in ["faq"]:
+        if supervisor_decision in ["faq", "wizard"]:
             return supervisor_decision
 
         # Si no hay decisión clara, ir a FAQ como default
@@ -204,6 +208,7 @@ Responde ÚNICAMENTE con una palabra: faq
 
 # Instancia global del agente
 supervisor_agent = SupervisorAgent()
+
 
 # Función para usar en el grafo LangGraph
 

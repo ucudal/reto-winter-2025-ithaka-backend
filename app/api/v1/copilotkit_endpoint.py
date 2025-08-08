@@ -4,11 +4,11 @@ Endpoint oficial de CopilotKit usando SDK y LangGraph
 
 import logging
 
+from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from fastapi import APIRouter
 
 from app.graph.workflow import IthakaWorkflow
-from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
 
 logger = logging.getLogger(__name__)
 
