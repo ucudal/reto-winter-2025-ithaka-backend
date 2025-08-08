@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.chat import router as chat_router
 from app.api.v1.conversations import router as conversations_router
 from app.api.v1.copilotkit_endpoint import router as copilotkit_router
+from app.api.v1.scoring import router as scoring_router
 from app.api.v1.websockets import router as websockets_router
 
 v1 = '/api/v1'
@@ -21,6 +22,7 @@ app.add_middleware(
 )
 
 app.include_router(conversations_router)
+app.include_router(scoring_router, prefix=v1, tags=["Scoring"])
 app.include_router(websockets_router, prefix=v1 + '/ws', tags=["Websockets"])
 app.include_router(chat_router, prefix=v1, tags=["Chat"])
 app.include_router(copilotkit_router, prefix=v1, tags=["CopilotKit"])
