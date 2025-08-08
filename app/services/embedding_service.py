@@ -1,11 +1,13 @@
+import logging
 import os
 from typing import List, Optional
+
 import numpy as np
 from openai import AsyncOpenAI
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from ..db.models import FAQEmbedding
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +46,11 @@ class EmbeddingService:
             raise
 
     async def search_similar_faqs(
-        self,
-        query: str,
-        session: AsyncSession,
-        limit: int = 5,
-        similarity_threshold: float = 0.7
+            self,
+            query: str,
+            session: AsyncSession,
+            limit: int = 5,
+            similarity_threshold: float = 0.7
     ) -> List[dict]:
         """Busca FAQs similares usando similitud de coseno"""
         try:
@@ -85,10 +87,10 @@ class EmbeddingService:
             return []
 
     async def add_faq_embedding(
-        self,
-        question: str,
-        answer: str,
-        session: AsyncSession
+            self,
+            question: str,
+            answer: str,
+            session: AsyncSession
     ) -> Optional[FAQEmbedding]:
         """Agrega una nueva FAQ con su embedding"""
         try:

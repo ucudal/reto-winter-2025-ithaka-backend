@@ -3,11 +3,10 @@ Agente Validator - Valida datos específicos del usuario
 Integra con las funciones de validación existentes en utils/validators.py
 """
 
-import re
-from typing import Any, Optional
-from ..graph.state import ConversationState
-from utils.validators import validate_email, validate_phone, validate_ci, ValidationError
 import logging
+from typing import Any
+
+from ..graph.state import ConversationState
 
 logger = logging.getLogger(__name__)
 
@@ -165,22 +164,23 @@ class ValidatorAgent:
             "normalized_value": name.title()  # Primera letra mayúscula
         }
 """
+
     def _validate_location(self, location: str) -> dict[str, Any]:
         """Valida ubicación con tolerancia a formatos"""
         if not location:
             return {"is_valid": False, "error": "La ubicación no puede estar vacía"}
-        
+
         location = location.strip()
         logger.debug(f"Validando ubicación: '{location}'")
 
         # Acepta: "Ciudad, País", "Ciudad País", o "Ciudad-País"
         if len(location) < 4:
             return {"is_valid": False, "error": "Ubicación demasiado corta"}
-        
+
         # Normaliza a "Ciudad, País"
         if ',' not in location:
             location = location.replace(' ', ', ', 1)  # Reemplaza solo el primer espacio
-        
+
         return {
             "is_valid": True,
             "message": "Ubicación válida",
@@ -243,9 +243,9 @@ class ValidatorAgent:
         }
 
     def validate_wizard_response(
-        self,
-        question_config: dict[str, Any],
-        user_response: str
+            self,
+            question_config: dict[str, Any],
+            user_response: str
     ) -> dict[str, Any]:
         """Método específico para validar respuestas del wizard"""
 
@@ -261,6 +261,7 @@ class ValidatorAgent:
 
 # Instancia global del agente
 validator_agent = ValidatorAgent()
+
 
 # Función para usar en el grafo LangGraph
 

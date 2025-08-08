@@ -2,13 +2,14 @@
 Servicio de chat actualizado para integrar con el sistema de agentes LangGraph
 """
 
+import logging
 from typing import Any, Optional, Dict
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from sqlalchemy import select, and_
+
 from ..db.config.database import get_async_session
 from ..db.models import Conversation, Message, WizardSession
 from ..graph.workflow import process_user_message
-import logging
 
 logger = logging.getLogger(__name__)
 

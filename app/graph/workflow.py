@@ -2,8 +2,6 @@
 Workflow principal de LangGraph para orquestar todos los agentes del sistema Ithaka
 """
 
-# TODO: Integrar validator cuando esté disponible
-# from ..agents.validator import validate_data
 import logging
 from datetime import datetime
 from typing import Any
@@ -13,10 +11,9 @@ from langgraph.graph import StateGraph, END
 from langgraph.graph.state import CompiledStateGraph
 
 from .state import ConversationState
-# TODO: Integrar wizard agent cuando esté disponible
-from ..agents.wizard import handle_wizard_flow
 from ..agents.faq import handle_faq_query
 from ..agents.supervisor import route_message, decide_next_agent_wrapper
+from ..agents.wizard import handle_wizard_flow
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +32,8 @@ class IthakaWorkflow:
 
         # Agregar nodos (agentes)
         workflow.add_node("supervisor", route_message)
-        # TODO: Agregar wizard node cuando esté disponible
         workflow.add_node("wizard", handle_wizard_flow)
         workflow.add_node("faq", handle_faq_query)
-        # TODO: Agregar validator node cuando esté disponible
-        # workflow.add_node("validator", validate_data)
 
         # Definir punto de entrada
         workflow.set_entry_point("supervisor")
@@ -49,11 +43,8 @@ class IthakaWorkflow:
             "supervisor",
             decide_next_agent_wrapper,
             {
-                # TODO: Agregar wizard cuando esté disponible
                 "wizard": "wizard",
                 "faq": "faq",
-                # TODO: Agregar validator cuando esté disponible
-                # "validator": "validator",
                 "end": END
             }
         )
@@ -69,11 +60,8 @@ class IthakaWorkflow:
         )
 
         # Los otros agentes terminan el flujo
-        # TODO: Agregar wizard edge cuando esté disponible
         workflow.add_edge("wizard", END)
         workflow.add_edge("faq", END)
-        # TODO: Agregar validator edge cuando esté disponible
-        # workflow.add_edge("validator", END)
 
         # Compilar el grafo
         return workflow.compile(checkpointer=InMemorySaver())
@@ -82,26 +70,26 @@ class IthakaWorkflow:
         """Determina si el wizard debe continuar o terminar"""
         wizard_state = state.get("wizard_state", "INACTIVE")
         next_action = state.get("next_action", "complete")
-        
+
         # Si está completado o hay error, terminar
         if wizard_state in ["COMPLETED", "ERROR"]:
             return "end"
-        
+
         # Si el wizard está activo y necesita enviar respuesta, terminar (no continuar)
         # El wizard debe terminar después de procesar la respuesta del usuario
         if wizard_state == "ACTIVE" and next_action == "send_response":
             return "end"
-        
+
         # Si no hay decisión clara, terminar
         return "end"
 
     def _create_initial_state(
-        self,
-        user_message: str,
-        conversation_id: int = None,
-        chat_history: list = None,
-        user_email: str = None,
-        wizard_state: dict[str, Any] = None
+            self,
+            user_message: str,
+            conversation_id: int = None,
+            chat_history: list = None,
+            user_email: str = None,
+            wizard_state: dict[str, Any] = None
     ) -> dict[str, Any]:
         """Crea el estado inicial para el workflow"""
         # Usar el estado del wizard proporcionado o valores por defecto
@@ -109,13 +97,13 @@ class IthakaWorkflow:
         current_question = 1
         wizard_responses = {}
         wizard_state_str = "INACTIVE"
-        
+
         if wizard_state:
             wizard_session_id = wizard_state.get("wizard_session_id")
             wizard_state_str = wizard_state.get("wizard_state", "INACTIVE")
             current_question = wizard_state.get("current_question", 1)
             wizard_responses = wizard_state.get("wizard_responses", {})
-        
+
         return {
             "conversation_id": conversation_id,
             "user_message": user_message,
@@ -140,12 +128,12 @@ class IthakaWorkflow:
         }
 
     async def process_message(
-        self,
-        user_message: str,
-        conversation_id: int = None,
-        chat_history: list = None,
-        user_email: str = None,
-        wizard_state: dict[str, Any] = None
+            self,
+            user_message: str,
+            conversation_id: int = None,
+            chat_history: list = None,
+            user_email: str = None,
+            wizard_state: dict[str, Any] = None
     ) -> dict[str, Any]:
         """Procesa un mensaje del usuario a través del grafo de agentes"""
 
@@ -159,9 +147,21 @@ class IthakaWorkflow:
                 wizard_state=wizard_state
             )
 
-            # Ejecutar el grafo
-            logger.info(f"Processing message: {user_message[:50]}...")
-            result = await self.graph.ainvoke(initial_state)
+            # Verificar si debe usar el wizard directamente
+            if wizard_state and wizard_state.get("wizard_state") == "ACTIVE":
+                # Para wizard activo, usar process_user_message
+                result = await process_user_message(
+                    user_message=user_message,
+                    conversation_id=conversation_id,
+                    chat_history=chat_history,
+                    user_email=user_email,
+                    wizard_state=wizard_state
+                )
+                return result
+            else:
+                # Para otros casos, usar el grafo normal
+                logger.info(f"Processing message: {user_message[:50]}...")
+                result = await self.graph.ainvoke(initial_state)
 
             # Extraer información relevante del resultado
             response_data = {
@@ -204,21 +204,15 @@ class IthakaWorkflow:
             }
 
 
-# Instancia global del workflow
-# ithaka_workflow = IthakaWorkflow()
-
-
-# Función de conveniencia para usar desde otros módulos
-
-
 async def process_user_message(
-    user_message: str,
-    conversation_id: int = None,
-    chat_history: list = None,
-    user_email: str = None,
-    wizard_state: dict[str, Any] = None
+        user_message: str,
+        conversation_id: int = None,
+        chat_history: list = None,
+        user_email: str = None,
+        wizard_state: dict[str, Any] = None
 ) -> dict[str, Any]:
     """Función de conveniencia para procesar mensajes de usuario"""
+    from app.api.v1.copilotkit_endpoint import ithaka_workflow
     return await ithaka_workflow.process_message(
         user_message=user_message,
         conversation_id=conversation_id,
