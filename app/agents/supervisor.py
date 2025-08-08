@@ -67,9 +67,15 @@ class SupervisorAgent:
 
         # Patrones para wizard cuando esté disponible
         wizard_keywords = [
-            "postular", "emprender", "formulario", "idea", "negocio",
-            "startup", "proyecto", "emprendimiento", "incubadora",
-            "quiero postular", "tengo una idea"
+            # Acciones directas
+            "postular", "postulación", "inscribirme", "inscripcion", "inscripción",
+            # Intenciones naturales
+            "me quiero postular", "quiero postularme", "tengo una idea", "presentar una idea",
+            "tengo un proyecto", "quiero presentar un proyecto", "quiero aplicar",
+            # Contexto de emprendimiento
+            "emprender", "emprendimiento", "incubadora", "startup", "negocio",
+            # Formularios
+            "formulario"
         ]
 
         # Patrones para FAQ
