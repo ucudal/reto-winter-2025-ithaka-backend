@@ -28,11 +28,18 @@ class SupervisorAgent:
         """Analiza el mensaje del usuario y decide el routing"""
         chat_history = [m.content for m in state["messages"] if m.type == "human"]
         user_message = chat_history[-1].strip()
-        # conversation_id = state.get("conversation_id") # TODO: Agregar cuando esté disponible
 
-        if state.get("wizard_session_id") and state.get("wizard_state") == "ACTIVE":
-            logger.info("Routing to wizard - active session detected in state")
-            return self._route_to_wizard(state)
+        # SIMPLE FIX: Si hay wizard_state ACTIVO, mantener wizard
+        wizard_state_obj = state.get("wizard_state")
+
+        if wizard_state_obj:
+            wizard_status = wizard_state_obj.get("wizard_status", "INACTIVE")
+            awaiting_answer = wizard_state_obj.get("awaiting_answer", False)
+            wizard_session_id = wizard_state_obj.get("wizard_session_id")
+
+            if wizard_session_id and (wizard_status == "ACTIVE" or awaiting_answer):
+                logger.info("Manteniendo wizard activo - session detectada")
+                return self._route_to_wizard(state)
 
         # Análisis de intención usando patrones simples primero
         intention = self._analyze_intention_simple(user_message)

@@ -5,15 +5,17 @@ Workflow principal de LangGraph para orquestar todos los agentes del sistema Ith
 import logging
 from datetime import datetime
 from typing import Any
+import uuid
 
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import StateGraph, END
 from langgraph.graph.state import CompiledStateGraph
+from langchain_core.messages import HumanMessage
 
 from .state import ConversationState
 from ..agents.faq import handle_faq_query
 from ..agents.supervisor import route_message, decide_next_agent_wrapper
-from ..agents.wizard import handle_wizard_flow
+from ..agents.wizard_workflow.wizard_graph import wizard_graph
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +34,10 @@ class IthakaWorkflow:
 
         # Agregar nodos (agentes)
         workflow.add_node("supervisor", route_message)
-        workflow.add_node("wizard", handle_wizard_flow)
+        # workflow.add_node("wizard", handle_wizard_flow)
+
+        workflow.add_node("wizard", handle_wizard_flow_good)
+
         workflow.add_node("faq", handle_faq_query)
 
         # Definir punto de entrada
@@ -50,14 +55,14 @@ class IthakaWorkflow:
         )
 
         # El wizard puede continuar consigo mismo o terminar
-        workflow.add_conditional_edges(
-            "wizard",
-            self._wizard_should_continue,
-            {
-                "continue": "wizard",
-                "end": END
-            }
-        )
+        # workflow.add_conditional_edges(
+        #     "wizard",
+        #     self._wizard_should_continue,
+        #     {
+        #         "continue": "wizard",
+        #         "end": END
+        #     }
+        # )
 
         # Los otros agentes terminan el flujo
         workflow.add_edge("wizard", END)
@@ -86,137 +91,136 @@ class IthakaWorkflow:
     def _create_initial_state(
             self,
             user_message: str,
-            conversation_id: int = None,
-            chat_history: list = None,
-            user_email: str = None,
             wizard_state: dict[str, Any] = None
-    ) -> dict[str, Any]:
+    ) -> ConversationState:
         """Crea el estado inicial para el workflow"""
-        # Usar el estado del wizard proporcionado o valores por defecto
-        wizard_session_id = None
-        current_question = 1
-        wizard_responses = {}
-        wizard_state_str = "INACTIVE"
 
+        # Crear WizardState - siempre crear uno si no existe para wizard
+        wizard_state_obj = None
         if wizard_state:
-            wizard_session_id = wizard_state.get("wizard_session_id")
-            wizard_state_str = wizard_state.get("wizard_state", "INACTIVE")
-            current_question = wizard_state.get("current_question", 1)
-            wizard_responses = wizard_state.get("wizard_responses", {})
+            wizard_state_obj = {
+                "wizard_session_id": wizard_state.get("wizard_session_id"),
+                "current_question": wizard_state.get("current_question", 0),
+                "answers": [],
+                "wizard_responses": wizard_state.get("wizard_responses", {}),
+                "wizard_status": wizard_state.get("wizard_state", "INACTIVE"),
+                "awaiting_answer": wizard_state.get("awaiting_answer", False),
+                "messages": [],
+                "completed": wizard_state.get("wizard_state") == "COMPLETED"
+            }
+        else:
+            # Crear WizardState por defecto para nuevos wizards
+            wizard_state_obj = {
+                "wizard_session_id": str(uuid.uuid4()),
+                "current_question": 1,  # Cambiar de 0 a 1 - las preguntas empiezan en 1
+                "answers": [],
+                "wizard_responses": {},
+                "wizard_status": "ACTIVE",
+                "awaiting_answer": False,
+                "messages": [],
+                "completed": False,
+                "valid": False  # Inicializar valid
+            }
 
         return {
-            "conversation_id": conversation_id,
-            "user_message": user_message,
-            "chat_history": chat_history or [],
-            "user_email": user_email,
-            "user_name": None,
+            "messages": [HumanMessage(content=user_message)],
+            "conversation_id": None,
+            "user_email": None,
             "current_agent": "supervisor",
             "agent_context": {},
-            "wizard_session_id": wizard_session_id,
-            "current_question": current_question,
-            "wizard_responses": wizard_responses,
-            "wizard_state": wizard_state_str,
-            "supervisor_decision": None,
-            "faq_results": None,
-            "validation_results": None,
-            "next_action": "process",
-            "should_continue": True,
-            "human_feedback_needed": False,
-            "human_validation_needed": False,
-            "timestamp": datetime.now(),
-            "session_data": {}
+            "wizard_state": wizard_state_obj
         }
 
     async def process_message(
             self,
             user_message: str,
-            conversation_id: int = None,
-            chat_history: list = None,
-            user_email: str = None,
             wizard_state: dict[str, Any] = None
     ) -> dict[str, Any]:
         """Procesa un mensaje del usuario a través del grafo de agentes"""
 
         try:
-            # Crear estado inicial como diccionario
+            # Crear estado inicial
             initial_state = self._create_initial_state(
                 user_message=user_message,
-                conversation_id=conversation_id,
-                chat_history=chat_history,
-                user_email=user_email,
                 wizard_state=wizard_state
             )
 
-            # Verificar si debe usar el wizard directamente
-            if wizard_state and wizard_state.get("wizard_state") == "ACTIVE":
-                # Para wizard activo, usar process_user_message
-                result = await process_user_message(
-                    user_message=user_message,
-                    conversation_id=conversation_id,
-                    chat_history=chat_history,
-                    user_email=user_email,
-                    wizard_state=wizard_state
-                )
-                return result
-            else:
-                # Para otros casos, usar el grafo normal
-                logger.info(f"Processing message: {user_message[:50]}...")
-                result = await self.graph.ainvoke(initial_state)
+            logger.info(f"Processing message: {user_message[:50]}...")
+            result = await self.graph.ainvoke(initial_state)
 
             # Extraer información relevante del resultado
+            wizard_state_obj = result.get("wizard_state")
             response_data = {
                 "response": result.get("agent_context", {}).get("response", "Lo siento, no pude procesar tu mensaje."),
-                "agent_used": result.get("current_agent", "unknown"),
-                "conversation_id": result.get("conversation_id"),
-                "wizard_session_id": result.get("wizard_session_id"),
-                "wizard_state": result.get("wizard_state", "INACTIVE"),
-                "current_question": result.get("current_question"),
-                "wizard_responses": result.get("wizard_responses", {}),
-                "human_feedback_needed": result.get("human_feedback_needed", False),
-                "human_validation_needed": result.get("human_validation_needed", False),
-                "should_continue": result.get("should_continue", False),
-                "next_action": result.get("next_action", "complete"),
-                "faq_results": result.get("faq_results"),
-                "validation_results": result.get("validation_results"),
-                "session_data": result.get("session_data", {})
+                "agent_used": result.get("current_agent", "unknown")
             }
 
-            logger.info(
-                f"Message processed successfully by {response_data['agent_used']}")
+            # Si hay wizard state, extraer sus campos
+            if wizard_state_obj:
+                response_data.update({
+                    "wizard_session_id": wizard_state_obj.get("wizard_session_id"),
+                    "wizard_state": wizard_state_obj.get("wizard_status", "INACTIVE"),
+                    "current_question": wizard_state_obj.get("current_question"),
+                    "wizard_responses": wizard_state_obj.get("wizard_responses", {}),
+                    "awaiting_answer": wizard_state_obj.get("awaiting_answer", False)
+                })
+            else:
+                response_data.update({
+                    "wizard_session_id": None,
+                    "wizard_state": "INACTIVE",
+                    "current_question": 1,
+                    "wizard_responses": {},
+                    "awaiting_answer": False
+                })
+
+            logger.info(f"Message processed successfully by {response_data['agent_used']}")
             return response_data
 
         except Exception as e:
             logger.error(f"Error processing message through workflow: {e}")
-
-            # Respuesta de fallback
             return {
                 "response": "Lo siento, tuve un problema técnico procesando tu mensaje. ¿Podrías intentar de nuevo?",
                 "agent_used": "error_handler",
-                "conversation_id": conversation_id,
                 "wizard_session_id": None,
                 "wizard_state": "INACTIVE",
                 "current_question": 1,
-                "human_feedback_needed": False,
-                "human_validation_needed": False,
-                "should_continue": False,
-                "next_action": "complete",
+                "awaiting_answer": False,
                 "error": str(e)
             }
 
 
-async def process_user_message(
-        user_message: str,
-        conversation_id: int = None,
-        chat_history: list = None,
-        user_email: str = None,
-        wizard_state: dict[str, Any] = None
-) -> dict[str, Any]:
-    """Función de conveniencia para procesar mensajes de usuario"""
-    from app.api.v1.copilotkit_endpoint import ithaka_workflow
-    return await ithaka_workflow.process_message(
-        user_message=user_message,
-        conversation_id=conversation_id,
-        chat_history=chat_history,
-        user_email=user_email,
-        wizard_state=wizard_state
-    )
+async def handle_wizard_flow_good(state: dict) -> dict:
+    """Maneja el flujo del wizard de manera correcta"""
+
+    # Extraer el wizard_state del ConversationState
+    wizard_state = state.get("wizard_state")
+
+    if not wizard_state:
+        # Si no hay wizard_state, crear uno por defecto
+        import uuid
+        wizard_state = {
+            "wizard_session_id": str(uuid.uuid4()),
+            "current_question": 1,  # Cambiar de 0 a 1 para coincidir con WIZARD_QUESTIONS
+            "answers": [],
+            "wizard_responses": {},
+            "wizard_status": "ACTIVE",
+            "awaiting_answer": False,
+            "messages": state.get("messages", []),
+            "completed": False,
+            "valid": False  # Agregar campo valid
+        }
+    else:
+        # Asegurar que tiene los mensajes del ConversationState
+        wizard_state = dict(wizard_state)  # Hacer una copia
+        wizard_state["messages"] = state.get("messages", [])
+
+    # Pasar solo el wizard_state al wizard_graph
+    result = await wizard_graph.ainvoke(wizard_state)
+
+    # Actualizar el ConversationState con el resultado del wizard
+    return {
+        **state,  # Mantener campos del ConversationState
+        "wizard_state": result,  # Actualizar con resultado del wizard
+        "messages": result.get("messages", []),  # Usar los mensajes del wizard para el frontend
+        "agent_context": {"response": result.get("messages", [])[-1].content if result.get("messages") else ""}
+    }
